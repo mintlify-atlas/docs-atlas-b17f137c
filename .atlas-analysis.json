@@ -1,0 +1,150 @@
+{
+  "projectType": "saas",
+  "projectName": "Relio",
+  "projectDescription": "Commercial real estate relationship intelligence platform with CRM, mapping, and AI capabilities",
+  "theme": "palm",
+  "primaryColor": "#f7f7f7",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/workspaces",
+              "features/contacts",
+              "features/companies",
+              "features/properties",
+              "features/deals",
+              "features/activities"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "features/ai-assistant",
+              "features/maps",
+              "features/lists",
+              "features/tasks",
+              "features/territories"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "admin/workspace-settings",
+              "admin/user-management",
+              "admin/custom-fields",
+              "admin/pipelines"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/introduction",
+              "api/authentication",
+              "api/rate-limits"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/contacts",
+              "api/companies",
+              "api/properties",
+              "api/deals",
+              "api/activities",
+              "api/tasks",
+              "api/lists"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "cli/overview",
+              "cli/installation",
+              "cli/authentication"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Integrations",
+        "groups": [
+          {
+            "group": "Setup",
+            "pages": [
+              "integrations/overview",
+              "integrations/webhooks",
+              "integrations/api-tokens"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-tenant workspace management with role-based access control",
+    "Contact and company relationship management",
+    "Property tracking with mapping and GIS integration",
+    "Deal pipeline management with custom stages",
+    "Activity timeline and task management",
+    "AI-powered assistant for research and insights",
+    "Custom fields and views for flexible data modeling",
+    "API and CLI for programmatic access",
+    "Email templates and notifications",
+    "File attachments and document management",
+    "Territory and list management",
+    "Billing and subscription management"
+  ],
+  "publicApiSurface": [
+    "contacts.getAll",
+    "contacts.getById",
+    "contacts.create",
+    "contacts.update",
+    "contacts.delete",
+    "companies.getAll",
+    "companies.getById",
+    "companies.create",
+    "companies.update",
+    "properties.getAll",
+    "properties.getById",
+    "properties.search",
+    "deals.getAll",
+    "deals.getById",
+    "deals.create",
+    "deals.update",
+    "activities.getAll",
+    "activities.create",
+    "tasks.getAll",
+    "tasks.create",
+    "tasks.update",
+    "lists.getAll",
+    "lists.create",
+    "search.query",
+    "ai.chat",
+    "workspace.getMembers",
+    "workspace.inviteMember"
+  ]
+}
