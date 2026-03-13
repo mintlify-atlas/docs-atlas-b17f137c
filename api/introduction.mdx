@@ -1,0 +1,143 @@
+---
+title: 'Introduction'
+description: 'Getting started with the Relio tRPC API'
+---
+
+## Overview
+
+Relio provides a type-safe tRPC API for managing your CRM data. The API is built on [tRPC](https://trpc.io/), which provides end-to-end type safety between your client and server.
+
+## Base URL
+
+All API requests are made to:
+
+```
+https://api.reliocrm.com/trpc
+```
+
+## API Architecture
+
+Relio's API is organized into routers, each handling a specific domain:
+
+- **contacts** - Manage contacts and relationships
+- **companies** - Manage company records
+- **properties** - Manage property listings
+- **deals** - Manage deals and pipelines
+- **activities** - Track interactions and activities
+- **tasks** - Manage workspace tasks
+- **lists** - Organize records into lists
+
+## Request Format
+
+tRPC requests are made via HTTP POST with JSON payloads:
+
+```typescript
+POST /trpc/{router}.{procedure}
+Content-Type: application/json
+
+{
+  "input": { /* procedure parameters */ }
+}
+```
+
+## Response Format
+
+Successful responses return:
+
+```json
+{
+  "result": {
+    "data": { /* response data */ }
+  }
+}
+```
+
+Error responses include:
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required",
+    "data": {
+      "rateLimit": {
+        "retryAfterSeconds": 30,
+        "bucket": "general",
+        "limit": 180
+      }
+    }
+  }
+}
+```
+
+## Client Usage
+
+With the tRPC client:
+
+```typescript
+import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import type { AppRouter } from '@relio-sb/api';
+
+const client = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: 'https://api.reliocrm.com/trpc',
+      headers: {
+        authorization: `Bearer ${apiToken}`,
+      },
+    }),
+  ],
+});
+
+// Type-safe API calls
+const contacts = await client.contacts.list.query({ limit: 50 });
+```
+
+## Procedure Types
+
+Relio uses three main procedure types for authorization:
+
+### publicProcedure
+
+No authentication required. Used for health checks and public endpoints.
+
+### protectedProcedure
+
+Requires authentication via session cookie or API token.
+
+### workspaceProcedure
+
+Requires authentication AND an active workspace. Used for all CRM data operations. Enforces:
+- Workspace isolation
+- Rate limiting based on plan tier
+- Seat limit checks for free workspaces
+- Permission-based access control
+
+## Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `UNAUTHORIZED` | 401 | Authentication required |
+| `FORBIDDEN` | 403 | Insufficient permissions |
+| `NOT_FOUND` | 404 | Resource not found |
+| `BAD_REQUEST` | 400 | Invalid input |
+| `PRECONDITION_FAILED` | 412 | Required condition not met |
+| `TOO_MANY_REQUESTS` | 429 | Rate limit exceeded |
+| `INTERNAL_SERVER_ERROR` | 500 | Server error |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Learn how to authenticate API requests
+  </Card>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Understand rate limiting policies
+  </Card>
+  <Card title="Contacts" icon="user" href="/api/contacts">
+    Manage contact records
+  </Card>
+  <Card title="Properties" icon="building" href="/api/properties">
+    Work with property listings
+  </Card>
+</CardGroup>

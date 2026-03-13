@@ -1,0 +1,667 @@
+---
+title: "API Tokens"
+description: "Authenticate and authorize API requests with fine-grained permissions"
+---
+
+API tokens allow applications to authenticate and interact with your Relio workspace. Each token has granular permissions that control which resources it can access and what operations it can perform.
+
+## Overview
+
+API tokens provide secure, programmatic access to your Relio workspace. Each token:
+
+- Has a unique identifier (e.g., `relio_a1b2c3d4e5f6...`)
+- Includes fine-grained permissions for different resource types
+- Can be revoked or deleted at any time
+- Tracks last usage for auditing
+- Is scoped to a specific workspace
+
+## Creating an API Token
+
+Create API tokens through your workspace settings or via the API:
+
+```typescript
+const result = await trpc.workspace.apiTokens.create.mutate({
+  name: "Production App Integration",
+  permissions: {
+    records: "read_write",
+    relationships: "read",
+    activities: "read_write",
+    files: "read",
+    tasks: "read_write",
+    userManagement: "disabled",
+    objectConfiguration: "disabled",
+    listEntries: "read",
+    listConfiguration: "disabled",
+    tags: "read_write",
+    notifications: "read",
+    webhooks: "disabled",
+    apiKeys: "disabled",
+    preferences: "read",
+    communications: "read_write",
+  },
+});
+
+// Save the token securely - shown only once!
+console.log("API Token:", result.token);
+// Example: relio_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0
+
+console.log("Token metadata:", result.tokenMeta);
+```
+
+<Warning>
+  The API token is only displayed once when created. Store it securely in your environment variables or secrets manager. If lost, you must create a new token.
+</Warning>
+
+## Permission Scopes
+
+Each API token has permissions for the following scopes. Each scope can be set to:
+
+- `disabled` - No access to this resource
+- `read` - Can view/list resources only
+- `read_write` - Can view, create, update, and delete resources
+
+### Available Scopes
+
+<AccordionGroup>
+  <Accordion title="User Management" icon="users">
+    **Scope:** `userManagement`
+    
+    Control access to workspace users and team member management.
+    
+    - `read` - View workspace users, roles, and permissions
+    - `read_write` - Invite users, modify roles, remove team members
+  </Accordion>
+  
+  <Accordion title="Records" icon="database">
+    **Scope:** `records`
+    
+    Access to core CRM records (contacts, companies, properties, deals).
+    
+    - `read` - View record details, search and filter
+    - `read_write` - Create, update, and delete records
+  </Accordion>
+  
+  <Accordion title="Relationships" icon="link">
+    **Scope:** `relationships`
+    
+    Manage relationships between records (contact-to-company, deal-to-contact, etc.).
+    
+    - `read` - View existing relationships
+    - `read_write` - Create and remove relationships
+  </Accordion>
+  
+  <Accordion title="Activities" icon="clock">
+    **Scope:** `activities`
+    
+    Access to activity timeline (calls, meetings, emails, notes).
+    
+    - `read` - View activity history
+    - `read_write` - Log new activities, update existing ones
+  </Accordion>
+  
+  <Accordion title="Files" icon="file">
+    **Scope:** `files`
+    
+    Manage file attachments on records.
+    
+    - `read` - View and download files
+    - `read_write` - Upload, update, and delete files
+  </Accordion>
+  
+  <Accordion title="Object Configuration" icon="sliders">
+    **Scope:** `objectConfiguration`
+    
+    Modify workspace schema (custom fields, object types, pipelines).
+    
+    - `read` - View workspace configuration and schema
+    - `read_write` - Create custom fields, modify pipelines, change settings
+    
+    <Warning>
+      This is a powerful permission that affects workspace structure. Grant carefully.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="List Entries" icon="list">
+    **Scope:** `listEntries`
+    
+    Access to list membership (adding/removing records from lists).
+    
+    - `read` - View which records are in which lists
+    - `read_write` - Add and remove records from lists
+  </Accordion>
+  
+  <Accordion title="List Configuration" icon="list-check">
+    **Scope:** `listConfiguration`
+    
+    Manage list definitions and settings.
+    
+    - `read` - View list configurations
+    - `read_write` - Create, update, and delete lists
+  </Accordion>
+  
+  <Accordion title="Tags" icon="tag">
+    **Scope:** `tags`
+    
+    Manage tags on records.
+    
+    - `read` - View tags on records
+    - `read_write` - Add and remove tags, create new tag types
+  </Accordion>
+  
+  <Accordion title="Tasks" icon="check-square">
+    **Scope:** `tasks`
+    
+    Access to tasks and todos.
+    
+    - `read` - View tasks and their status
+    - `read_write` - Create, update, complete, and delete tasks
+  </Accordion>
+  
+  <Accordion title="Notifications" icon="bell">
+    **Scope:** `notifications`
+    
+    Access to notification system.
+    
+    - `read` - View notifications
+    - `read_write` - Send notifications, mark as read/unread
+  </Accordion>
+  
+  <Accordion title="Webhooks" icon="webhook">
+    **Scope:** `webhooks`
+    
+    Manage workspace webhooks.
+    
+    - `read` - View webhook configurations (secrets are never exposed)
+    - `read_write` - Create, update, and delete webhooks
+    
+    <Note>
+      Even with `read` permission, webhook signing secrets are never returned by the API.
+    </Note>
+  </Accordion>
+  
+  <Accordion title="API Keys" icon="key">
+    **Scope:** `apiKeys`
+    
+    Manage API tokens.
+    
+    - `read` - View existing tokens (tokens themselves are never exposed)
+    - `read_write` - Create, update, and revoke API tokens
+    
+    <Warning>
+      This permission allows creating new API tokens. Grant with caution.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Preferences" icon="gear">
+    **Scope:** `preferences`
+    
+    Access workspace and user preferences.
+    
+    - `read` - View preferences and settings
+    - `read_write` - Modify preferences
+  </Accordion>
+  
+  <Accordion title="Communications" icon="envelope">
+    **Scope:** `communications`
+    
+    Access to communication features (email, SMS).
+    
+    - `read` - View communication history
+    - `read_write` - Send emails and SMS, log communications
+  </Accordion>
+</AccordionGroup>
+
+## Using API Tokens
+
+### Authentication
+
+Include your API token in the `Authorization` header using the `Bearer` scheme:
+
+```bash
+curl https://api.relio.com/v1/contacts \
+  -H "Authorization: Bearer relio_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+
+### Node.js / TypeScript Example
+
+```typescript
+import { createRelioClient } from "@relio/sdk";
+
+const relio = createRelioClient({
+  apiToken: process.env.RELIO_API_TOKEN!,
+  workspaceId: process.env.RELIO_WORKSPACE_ID!,
+});
+
+// List contacts
+const contacts = await relio.contacts.list({
+  limit: 100,
+  filter: {
+    email: { contains: "@example.com" },
+  },
+});
+
+// Create a new contact
+const contact = await relio.contacts.create({
+  firstName: "Jane",
+  lastName: "Smith",
+  email: "jane@example.com",
+  phone: "+1234567890",
+});
+
+// Update contact
+await relio.contacts.update({
+  id: contact.id,
+  tags: ["vip", "investor"],
+});
+
+// Create a task
+await relio.tasks.create({
+  title: "Follow up with Jane",
+  dueDate: new Date("2024-03-20"),
+  assignedTo: "user_123",
+  relatedTo: {
+    type: "contact",
+    id: contact.id,
+  },
+});
+```
+
+### Python Example
+
+```python
+import os
+from relio import RelioClient
+
+client = RelioClient(
+    api_token=os.environ["RELIO_API_TOKEN"],
+    workspace_id=os.environ["RELIO_WORKSPACE_ID"],
+)
+
+# List deals
+deals = client.deals.list(
+    limit=50,
+    filter={"stage": "negotiation"},
+)
+
+for deal in deals:
+    print(f"Deal: {deal.name} - ${deal.value}")
+
+# Create a deal
+deal = client.deals.create(
+    name="New Partnership",
+    value=50000,
+    stage="proposal",
+    contact_id="contact_123",
+    company_id="company_456",
+)
+
+# Add activity
+client.activities.create(
+    type="call",
+    title="Discovery call",
+    description="Discussed project requirements",
+    related_to={"type": "deal", "id": deal.id},
+    duration_minutes=30,
+)
+```
+
+### REST API Example
+
+```bash
+# Get all contacts
+curl https://api.relio.com/v1/contacts \
+  -H "Authorization: Bearer ${RELIO_API_TOKEN}" \
+  -H "X-Workspace-ID: ${RELIO_WORKSPACE_ID}"
+
+# Create a company
+curl -X POST https://api.relio.com/v1/companies \
+  -H "Authorization: Bearer ${RELIO_API_TOKEN}" \
+  -H "X-Workspace-ID: ${RELIO_WORKSPACE_ID}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corp",
+    "domain": "acme.com",
+    "industry": "Technology"
+  }'
+
+# Update a deal
+curl -X PATCH https://api.relio.com/v1/deals/deal_123 \
+  -H "Authorization: Bearer ${RELIO_API_TOKEN}" \
+  -H "X-Workspace-ID: ${RELIO_WORKSPACE_ID}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stage": "closed_won",
+    "closeDate": "2024-03-15T00:00:00Z"
+  }'
+```
+
+## Managing API Tokens
+
+### List Tokens
+
+```typescript
+const tokens = await trpc.workspace.apiTokens.list.query();
+
+tokens.forEach(token => {
+  console.log(`Token: ${token.name}`);
+  console.log(`  Prefix: ${token.tokenPrefix}`);
+  console.log(`  Created: ${token.createdAt}`);
+  console.log(`  Last used: ${token.lastUsedAt || "Never"}`);
+  console.log(`  Revoked: ${token.revokedAt ? "Yes" : "No"}`);
+  console.log(`  Created by: ${token.createdByLabel}`);
+  
+  // Check permissions
+  const perms = token.permissions;
+  console.log(`  Permissions:`);
+  console.log(`    - Records: ${perms.records}`);
+  console.log(`    - Tasks: ${perms.tasks}`);
+  console.log(`    - Files: ${perms.files}`);
+});
+```
+
+### Update Token
+
+```typescript
+// Rename token
+await trpc.workspace.apiTokens.update.mutate({
+  tokenId: "clt1234567890",
+  name: "Updated Integration Name",
+});
+
+// Update permissions (reduce access)
+await trpc.workspace.apiTokens.update.mutate({
+  tokenId: "clt1234567890",
+  permissions: {
+    records: "read", // Changed from read_write to read
+    relationships: "read",
+    activities: "disabled", // Removed access
+    files: "read",
+    tasks: "read",
+    // ... other permissions
+  },
+});
+```
+
+### Revoke Token
+
+```typescript
+// Revoke temporarily (can be un-revoked by removing revokedAt)
+await trpc.workspace.apiTokens.revoke.mutate({
+  tokenId: "clt1234567890",
+});
+
+// After revocation, the token cannot be used
+// But it remains in the database for audit purposes
+```
+
+### Delete Token
+
+```typescript
+// Permanently delete token
+await trpc.workspace.apiTokens.delete.mutate({
+  tokenId: "clt1234567890",
+});
+
+// The token is permanently removed and cannot be recovered
+```
+
+## Token Format
+
+Relio API tokens follow this format:
+
+```
+relio_{48_character_random_string}
+```
+
+- **Prefix:** `relio_` - Identifies this as a Relio API token
+- **Random bytes:** 48 hex characters (24 bytes) for security
+- **Total length:** 54 characters
+
+Tokens are stored as SHA-256 hashes in the database. The prefix (first 14 characters) is stored separately for identification without exposing the full token.
+
+### Token Storage
+
+When you create a token:
+1. Random bytes are generated: `relio_a1b2c3d4e5f6...`
+2. SHA-256 hash is computed and stored in database
+3. Token prefix (`relio_a1b2c3`) is stored for display
+4. Full token is returned to you once (never stored or retrievable again)
+
+## Default Permissions
+
+When creating a token without specifying permissions, all scopes default to `disabled`:
+
+```typescript
+const defaultPermissions = {
+  userManagement: "disabled",
+  records: "disabled",
+  relationships: "disabled",
+  activities: "disabled",
+  files: "disabled",
+  objectConfiguration: "disabled",
+  listEntries: "disabled",
+  listConfiguration: "disabled",
+  tags: "disabled",
+  tasks: "disabled",
+  notifications: "disabled",
+  webhooks: "disabled",
+  apiKeys: "disabled",
+  preferences: "disabled",
+  communications: "disabled",
+};
+```
+
+This ensures principle of least privilege - you must explicitly grant permissions.
+
+## Common Permission Patterns
+
+### Read-Only Analytics
+
+```typescript
+const analyticsToken = {
+  name: "Analytics Dashboard",
+  permissions: {
+    records: "read",
+    relationships: "read",
+    activities: "read",
+    tasks: "read",
+    listEntries: "read",
+    // All others: disabled
+  },
+};
+```
+
+### Task Management Bot
+
+```typescript
+const taskBot = {
+  name: "Task Automation",
+  permissions: {
+    tasks: "read_write",
+    records: "read", // To associate tasks with records
+    notifications: "read_write", // To send task reminders
+    // All others: disabled
+  },
+};
+```
+
+### Full CRM Integration
+
+```typescript
+const crmIntegration = {
+  name: "External CRM Sync",
+  permissions: {
+    records: "read_write",
+    relationships: "read_write",
+    activities: "read_write",
+    files: "read",
+    tags: "read_write",
+    tasks: "read_write",
+    listEntries: "read_write",
+    // Configuration: disabled
+    // Admin functions: disabled
+  },
+};
+```
+
+### Webhook Management
+
+```typescript
+const webhookManager = {
+  name: "Webhook Manager",
+  permissions: {
+    webhooks: "read_write",
+    // All others: disabled
+  },
+};
+```
+
+## Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Environment Variables">
+    Always store API tokens in environment variables, never in code:
+    
+    ```bash
+    # .env (never commit this file)
+    RELIO_API_TOKEN=relio_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+    RELIO_WORKSPACE_ID=org_123456
+    ```
+    
+    ```typescript
+    // Use in code
+    const token = process.env.RELIO_API_TOKEN;
+    ```
+  </Accordion>
+  
+  <Accordion title="Principle of Least Privilege">
+    Grant only the minimum permissions required:
+    
+    - Start with all permissions disabled
+    - Enable only what your application needs
+    - Use `read` instead of `read_write` when possible
+    - Review and reduce permissions regularly
+  </Accordion>
+  
+  <Accordion title="Token Rotation">
+    Rotate tokens regularly:
+    
+    ```typescript
+    // Create new token with same permissions
+    const newToken = await createToken({
+      name: `${oldToken.name} (rotated)`,
+      permissions: oldToken.permissions,
+    });
+    
+    // Update your application with new token
+    // Test thoroughly
+    
+    // Revoke old token
+    await revokeToken({ tokenId: oldToken.id });
+    ```
+  </Accordion>
+  
+  <Accordion title="Monitor Usage">
+    Track token usage to detect anomalies:
+    
+    ```typescript
+    const tokens = await listTokens();
+    
+    for (const token of tokens) {
+      if (!token.lastUsedAt) {
+        console.warn(`Token ${token.name} never used`);
+      }
+      
+      const daysSinceUse = 
+        (Date.now() - token.lastUsedAt.getTime()) / (1000 * 60 * 60 * 24);
+      
+      if (daysSinceUse > 90) {
+        console.warn(`Token ${token.name} unused for ${daysSinceUse} days`);
+        // Consider revoking
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Immediate Revocation">
+    If a token is compromised, revoke it immediately:
+    
+    ```typescript
+    // Revoke compromised token
+    await trpc.workspace.apiTokens.revoke.mutate({
+      tokenId: "compromised_token_id",
+    });
+    
+    // Create new token
+    const newToken = await trpc.workspace.apiTokens.create.mutate({
+      name: "Replacement Token",
+      permissions: { /* same as before */ },
+    });
+    
+    // Update application configuration
+    // Review access logs for suspicious activity
+    ```
+  </Accordion>
+  
+  <Accordion title="Separate Tokens per Environment">
+    Use different tokens for development, staging, and production:
+    
+    ```bash
+    # Development
+    RELIO_API_TOKEN=relio_dev_...
+    
+    # Staging
+    RELIO_API_TOKEN=relio_staging_...
+    
+    # Production
+    RELIO_API_TOKEN=relio_prod_...
+    ```
+    
+    This limits blast radius if a token is compromised.
+  </Accordion>
+</AccordionGroup>
+
+## Rate Limiting
+
+API tokens are subject to rate limits based on your workspace plan:
+
+- **Free Plan:** 100 requests/minute
+- **Pro Plan:** 1,000 requests/minute
+- **Enterprise Plan:** Custom limits
+
+Rate limit headers are included in all API responses:
+
+```
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 950
+X-RateLimit-Reset: 1234567890
+```
+
+If you exceed rate limits, you'll receive a `429 Too Many Requests` response.
+
+## Troubleshooting
+
+### 401 Unauthorized
+
+- Verify token format (should start with `relio_`)
+- Check token hasn't been revoked
+- Ensure Authorization header is correct: `Bearer relio_...`
+- Verify workspace ID matches
+
+### 403 Forbidden
+
+- Check token has required permission for the operation
+- Verify permission level (may need `read_write` instead of `read`)
+- Confirm resource belongs to your workspace
+
+### Token Not Working After Creation
+
+- Ensure you're using the full token (not just the prefix)
+- Check for extra spaces or line breaks in environment variable
+- Verify workspace ID is correct
+
+### lastUsedAt Not Updating
+
+- `lastUsedAt` updates are batched and may take a few minutes
+- Only successful authenticated requests update this field
+- Failed requests (401, 403) don't update lastUsedAt

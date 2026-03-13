@@ -1,0 +1,168 @@
+---
+title: Introduction
+description: Commercial real estate relationship intelligence platform with CRM, mapping, and AI capabilities
+---
+
+<div style={{
+  background: 'linear-gradient(135deg, #0F0F0F 0%, #111111 100%)',
+  borderRadius: '0px',
+  padding: '48px 32px',
+  marginBottom: '32px',
+  border: 'none'
+}}>
+  <h1 style={{
+    fontSize: '36px',
+    fontWeight: 700,
+    color: '#ffffff',
+    marginBottom: '16px',
+    fontFamily: 'Inter, sans-serif'
+  }}>
+    Welcome to Relio
+  </h1>
+  <p style={{
+    fontSize: '18px',
+    color: '#8C8C8C',
+    marginBottom: '24px',
+    fontFamily: 'Inter, sans-serif',
+    fontWeight: 400
+  }}>
+    A commercial real estate CRM that combines relationship intelligence, property tracking, and AI-powered insights in one platform.
+  </p>
+  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+    <a href="/quickstart" style={{
+      background: '#3AC88B',
+      color: '#ffffff',
+      padding: '12px 24px',
+      borderRadius: '4px',
+      textDecoration: 'none',
+      fontWeight: 600,
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '14.72px',
+      display: 'inline-block'
+    }}>
+      Get Started
+    </a>
+    <a href="/api/introduction" style={{
+      background: '#ffffff',
+      color: '#0F0F0F',
+      padding: '12px 24px',
+      borderRadius: '4px',
+      textDecoration: 'none',
+      fontWeight: 600,
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '14.72px',
+      display: 'inline-block'
+    }}>
+      API Reference
+    </a>
+  </div>
+</div>
+
+## What is Relio?
+
+Relio is a modern CRM built specifically for commercial real estate professionals. It helps you manage relationships, track properties, close deals, and leverage AI to uncover insights across your entire portfolio.
+
+<CardGroup cols={2}>
+  <Card title="Multi-tenant Workspaces" icon="building" href="/features/workspaces">
+    Organize teams with role-based access control
+  </Card>
+  <Card title="Contact & Company Management" icon="users" href="/features/contacts">
+    Track relationships and organizational hierarchies
+  </Card>
+  <Card title="Property Tracking" icon="map-location-dot" href="/features/properties">
+    Map and manage properties with GIS integration
+  </Card>
+  <Card title="Deal Pipelines" icon="funnel" href="/features/deals">
+    Visualize and manage deals through custom stages
+  </Card>
+  <Card title="AI Assistant" icon="sparkles" href="/features/ai-assistant">
+    Research properties and contacts with AI
+  </Card>
+  <Card title="API & CLI Access" icon="terminal" href="/api/introduction">
+    Programmatic access to all platform features
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="Comprehensive CRM">
+    Manage contacts, companies, properties, and deals in one unified platform. Track activities, tasks, and email communications with a complete timeline view.
+  </Accordion>
+  
+  <Accordion title="Mapping & GIS">
+    Built-in Mapbox integration for property visualization. Search by location, draw territories, and analyze geographic data with county parcel information.
+  </Accordion>
+  
+  <Accordion title="Custom Fields & Views">
+    Flexible data modeling with custom fields for any object type. Create saved views with filters, sorting, and column configuration.
+  </Accordion>
+  
+  <Accordion title="AI-Powered Insights">
+    Chat with an AI assistant that understands your CRM data. Research properties, companies, and contacts using natural language.
+  </Accordion>
+  
+  <Accordion title="Billing & Subscription Management">
+    Built-in integration with Polar.sh for subscription management, seat-based pricing, and usage tracking.
+  </Accordion>
+  
+  <Accordion title="Developer-Friendly">
+    Full tRPC API, CLI tool, webhooks, and API tokens for programmatic access. Built with TypeScript, Next.js, and modern tooling.
+  </Accordion>
+</AccordionGroup>
+
+## Architecture
+
+Relio is built as a modern monorepo with the following stack:
+
+- **Frontend**: Next.js 16, React 19, TailwindCSS 4
+- **Mobile**: React Native with Expo
+- **Backend**: Hono + tRPC for type-safe APIs
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Better Auth with multi-tenant support
+- **Real-time**: Supabase Realtime subscriptions
+- **AI**: OpenAI integration for chat and insights
+- **Maps**: Mapbox GL for property visualization
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get Relio running in 5 minutes
+  </Card>
+  <Card title="Installation Guide" icon="download" href="/installation">
+    Full setup instructions
+  </Card>
+  <Card title="API Documentation" icon="code" href="/api/introduction">
+    Integrate with the tRPC API
+  </Card>
+</CardGroup>
+
+## Use Cases
+
+**Property Acquisitions**: Track target properties, research ownership, manage outreach campaigns, and move deals through your pipeline.
+
+**Leasing & Tenant Management**: Maintain relationships with tenants, track lease expirations, and identify expansion opportunities.
+
+**Brokerage**: Manage client relationships, property listings, and deal flow with custom pipelines for different transaction types.
+
+**Development**: Track land acquisitions, maintain relationships with contractors and partners, and manage project timelines.
+
+## Get Started
+
+<Steps>
+  <Step title="Clone and Install">
+    Clone the repository and install dependencies with pnpm
+  </Step>
+  <Step title="Configure Environment">
+    Set up your database, authentication, and API keys
+  </Step>
+  <Step title="Run Development Server">
+    Start the web app, mobile app, and API server
+  </Step>
+  <Step title="Create Your Workspace">
+    Sign up and create your first workspace
+  </Step>
+</Steps>
+
+<Note>
+  Relio requires Node.js 20+ and PostgreSQL. See the [Installation Guide](/installation) for detailed setup instructions.
+</Note>

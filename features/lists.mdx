@@ -1,0 +1,466 @@
+---
+title: Lists
+description: Organize and manage collections of contacts, properties, companies, and deals
+icon: list
+---
+
+## Overview
+
+Lists provide a flexible way to organize records in Relio. Create custom collections of contacts, properties, companies, or deals, and use them to segment your data, track progress through pipelines, or share with team members.
+
+<Info>
+  Lists support both static collections and pipeline workflows with multiple stages.
+</Info>
+
+## List Types
+
+### Static Lists
+
+Simple collections of records without stages:
+
+- Group records by any criteria
+- Add and remove items freely
+- Share with team members
+- Export for external use
+
+**Use Cases:**
+- Target marketing lists
+- Prospect segmentation
+- Event attendee lists
+- Territory assignments
+
+### Pipeline Lists
+
+Multi-stage lists for tracking progress through a workflow:
+
+- Define custom stages (e.g., Lead → Qualified → Proposal → Closed)
+- Move items between stages
+- Track time in each stage
+- Visualize progress with Kanban board view
+
+**Use Cases:**
+- Sales pipelines
+- Lead nurturing workflows
+- Project management
+- Recruitment funnels
+
+## Creating Lists
+
+<Steps>
+  <Step title="Choose Object Type">
+    Select whether your list will contain contacts, properties, companies, or deals
+  </Step>
+  
+  <Step title="Configure List">
+    Set name, emoji icon, color, and description
+  </Step>
+  
+  <Step title="Set Visibility">
+    Choose between private (owner only) or workspace-wide visibility
+  </Step>
+  
+  <Step title="Add Stages (Optional)">
+    For pipeline lists, define your workflow stages
+  </Step>
+</Steps>
+
+### API Example
+
+```typescript
+const list = await trpc.lists.create.mutate({
+  name: "Q1 Prospects",
+  emoji: "🎯",
+  color: "#3b82f6",
+  description: "High-value prospects for Q1 outreach",
+  objectType: "contact",
+  type: "static",
+  visibility: "workspace",
+  workspaceAccessLevel: "view"
+});
+```
+
+### Pipeline Configuration
+
+```typescript
+const pipeline = await trpc.lists.create.mutate({
+  name: "Sales Pipeline",
+  emoji: "💰",
+  color: "#10b981",
+  objectType: "deal",
+  type: "pipeline",
+  isPipeline: true,
+  stages: [
+    { id: "stage_1", name: "Lead", color: "#94a3b8", order: 0 },
+    { id: "stage_2", name: "Qualified", color: "#3b82f6", order: 1 },
+    { id: "stage_3", name: "Proposal", color: "#f59e0b", order: 2 },
+    { id: "stage_4", name: "Closed Won", color: "#10b981", order: 3 }
+  ],
+  visibility: "workspace"
+});
+```
+
+## Managing List Items
+
+### Adding Items
+
+<AccordionGroup>
+  <Accordion title="Single Item">
+    Add one record at a time:
+    
+    ```typescript
+    await trpc.lists.addItem.mutate({
+      listId: "list_id",
+      contactId: "contact_id", // or propertyId, companyId, dealId
+      stageId: "stage_1", // for pipeline lists
+      order: 0
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Bulk Add">
+    Add multiple records efficiently:
+    
+    ```typescript
+    await trpc.lists.bulkAddItems.mutate({
+      listId: "list_id",
+      entityIds: [
+        "contact_1",
+        "contact_2",
+        "contact_3"
+      ]
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="From Search Results">
+    Add filtered records from search:
+    
+    1. Apply filters to contacts/properties/companies/deals
+    2. Click "Add to List" in the toolbar
+    3. Select target list
+    4. All filtered records are added in bulk
+  </Accordion>
+</AccordionGroup>
+
+### Removing Items
+
+```typescript
+// Remove single item
+await trpc.lists.removeItem.mutate({
+  id: "list_item_id"
+});
+
+// Bulk remove by entity IDs
+await trpc.lists.bulkRemoveItems.mutate({
+  listId: "list_id",
+  entityIds: ["contact_1", "contact_2"]
+});
+```
+
+### Moving Items (Pipelines)
+
+Move items between stages in a pipeline:
+
+```typescript
+await trpc.lists.moveItem.mutate({
+  id: "list_item_id",
+  stageId: "stage_2",
+  order: 3 // position within the stage
+});
+```
+
+<Note>
+  When an item moves to a new stage, `stageEnteredAt` is automatically updated to track time in stage.
+</Note>
+
+## Viewing Lists
+
+### List View
+
+Fetch all lists with item counts:
+
+```typescript
+const lists = await trpc.lists.list.query();
+
+lists.forEach(list => {
+  console.log(`${list.emoji} ${list.name}`);
+  console.log(`  Type: ${list.type}`);
+  console.log(`  Items: ${list.itemCount}`);
+  console.log(`  Owner: ${list.ownerName}`);
+});
+```
+
+**Visibility Rules:**
+- Admins see all workspace lists
+- Members see workspace-visible lists and their own private lists
+- Lists shared explicitly via permissions
+
+### List Items
+
+Fetch items with full record details:
+
+```typescript
+const { list, items } = await trpc.lists.getItems.query({
+  listId: "list_id",
+  stageId: "stage_1" // optional: filter by stage
+});
+
+items.forEach(item => {
+  // item.contact, item.property, item.company, or item.deal
+  // depending on list objectType
+  if (item.contact) {
+    console.log(item.contact.firstName, item.contact.lastName);
+  }
+});
+```
+
+**Returned Data:**
+- List item metadata (order, stage, added date)
+- Full record details (contact/property/company/deal)
+- Normalized email and phone data
+- Related information (owner, dates, etc.)
+
+## Permissions & Sharing
+
+### Visibility Levels
+
+**Private (Owner Only):**
+```typescript
+visibility: "private"
+```
+Only the list owner can view and edit.
+
+**Workspace:**
+```typescript
+visibility: "workspace"
+workspaceAccessLevel: "view" | "full_access"
+```
+All workspace members can see the list, with specified access level.
+
+### Individual Shares
+
+Grant specific users access to a private list:
+
+```typescript
+await trpc.lists.updateShares.mutate({
+  listId: "list_id",
+  workspaceAccessLevel: "view",
+  shares: [
+    {
+      userId: "user_1",
+      accessLevel: "full_access"
+    },
+    {
+      userId: "user_2",
+      accessLevel: "view"
+    }
+  ]
+});
+```
+
+**Access Levels:**
+- `view` - Read-only access
+- `full_access` - Can add/remove items and modify list
+- `no_access` - Removes access
+
+### Getting Share Information
+
+```typescript
+const shareInfo = await trpc.lists.getShares.query({
+  listId: "list_id"
+});
+
+console.log("Visibility:", shareInfo.visibility);
+console.log("Workspace Access:", shareInfo.workspaceAccessLevel);
+console.log("Individual Shares:", shareInfo.shares.length);
+
+shareInfo.shares.forEach(share => {
+  console.log(`${share.userName}: ${share.accessLevel}`);
+});
+```
+
+## Record-to-List Relationships
+
+### Finding Lists for a Record
+
+Discover which lists contain a specific record:
+
+```typescript
+const lists = await trpc.lists.getListsForRecord.query({
+  recordId: "contact_id",
+  objectType: "contact"
+});
+
+console.log(`This contact is in ${lists.length} lists:`);
+lists.forEach(list => {
+  console.log(`- ${list.emoji} ${list.name}`);
+});
+```
+
+**Use Cases:**
+- Display list badges on record detail pages
+- Prevent duplicate additions
+- Show record segmentation
+- Track pipeline membership
+
+## List Operations
+
+### Updating Lists
+
+```typescript
+await trpc.lists.update.mutate({
+  id: "list_id",
+  name: "Updated Name",
+  description: "New description",
+  color: "#ef4444",
+  stages: [
+    // updated stage configuration for pipelines
+  ]
+});
+```
+
+### Deleting Lists
+
+<Warning>
+  Deleting a list removes all list items and share permissions. This action cannot be undone.
+</Warning>
+
+```typescript
+// Admin only
+await trpc.lists.delete.mutate("list_id");
+```
+
+Cascading deletions:
+- All list items are removed
+- All share permissions are deleted
+- The list record is permanently deleted
+
+## Advanced Features
+
+### Dynamic Filtering
+
+Static lists vs. smart lists with filter rules:
+
+```typescript
+interface FilterConfig {
+  conditions: Array<{
+    field: string;
+    operator: "eq" | "ne" | "gt" | "lt" | "contains";
+    value: any;
+  }>;
+  logic: "AND" | "OR";
+}
+
+const smartList = await trpc.lists.create.mutate({
+  name: "High Value Contacts",
+  objectType: "contact",
+  type: "static",
+  filterConfig: {
+    conditions: [
+      { field: "dealValue", operator: "gt", value: 100000 },
+      { field: "status", operator: "eq", value: "active" }
+    ],
+    logic: "AND"
+  }
+});
+```
+
+### Order Management
+
+Control item ordering within lists:
+
+```typescript
+// Items are ordered by the 'order' field
+// Lower numbers appear first
+
+await trpc.lists.addItem.mutate({
+  listId: "list_id",
+  contactId: "contact_id",
+  order: 5 // position in the list
+});
+
+// Reorder by updating
+await trpc.lists.moveItem.mutate({
+  id: "item_id",
+  stageId: "current_stage",
+  order: 2 // new position
+});
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="List Organization">
+    - Use descriptive names and emojis for easy identification
+    - Set appropriate visibility levels to prevent clutter
+    - Archive or delete outdated lists regularly
+    - Use consistent naming conventions across your workspace
+  </Accordion>
+  
+  <Accordion title="Pipeline Management">
+    - Keep pipelines focused on a single workflow
+    - Define clear stage criteria and exit conditions
+    - Track time in stage to identify bottlenecks
+    - Set up automation rules for stage transitions
+  </Accordion>
+  
+  <Accordion title="Performance">
+    - Use bulk operations for adding/removing multiple items
+    - Filter lists by stage to reduce data transfer
+    - Consider archiving very large lists (1000+ items)
+    - Use smart lists with filters instead of manual maintenance
+  </Accordion>
+</AccordionGroup>
+
+## Integration Examples
+
+### With Map Search
+
+```typescript
+// Convert map search to list
+const searchPolygon = { /* GeoJSON polygon */ };
+const propertiesInArea = /* spatial query results */;
+
+const list = await trpc.lists.create.mutate({
+  name: "Downtown Properties",
+  objectType: "property",
+  type: "static"
+});
+
+await trpc.lists.bulkAddItems.mutate({
+  listId: list.id,
+  entityIds: propertiesInArea.map(p => p.id)
+});
+```
+
+### With Workflows
+
+```typescript
+// Trigger actions on stage change
+if (newStage === "closed_won") {
+  await createTask({
+    title: "Send welcome package",
+    contactId: item.contactId
+  });
+}
+```
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Contacts" icon="users" href="/features/contacts">
+    Create lists of contacts for outreach campaigns
+  </Card>
+  
+  <Card title="Properties" icon="building" href="/features/properties">
+    Organize properties by location, status, or value
+  </Card>
+  
+  <Card title="Maps" icon="map" href="/features/maps">
+    Create lists from spatial map searches
+  </Card>
+  
+  <Card title="Tasks" icon="check" href="/features/tasks">
+    Link tasks to list items for follow-up
+  </Card>
+</CardGroup>

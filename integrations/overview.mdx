@@ -1,0 +1,85 @@
+---
+title: "Integrations Overview"
+description: "Connect Relio with your apps using webhooks and API tokens"
+---
+
+Relio provides powerful integration capabilities to connect your workspace with external applications and services. Build custom integrations, automate workflows, and sync data in real-time.
+
+## Integration Methods
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/integrations/webhooks">
+    Receive real-time notifications when events occur in your workspace
+  </Card>
+  <Card title="API Tokens" icon="key" href="/integrations/api-tokens">
+    Authenticate API requests with granular permission controls
+  </Card>
+</CardGroup>
+
+## Common Use Cases
+
+### Real-Time Sync
+Use webhooks to keep external systems synchronized with your Relio workspace. When a contact, deal, or task changes, your application receives immediate notification.
+
+### Custom Applications
+Build custom applications that interact with Relio using API tokens. Control exactly which resources your application can read or modify with fine-grained permissions.
+
+### Workflow Automation
+Combine webhooks and API tokens to create powerful automation workflows. For example:
+- Receive webhook when a deal is created
+- Process the deal data in your application
+- Use API token to create follow-up tasks or send notifications
+
+### Data Integration
+Connect Relio with your data warehouse, analytics platform, or other business tools to create a unified data ecosystem.
+
+## Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Webhook Security">
+    - Always verify webhook signatures before processing events
+    - Use HTTPS endpoints for webhook delivery
+    - Store webhook secrets securely (environment variables, secrets manager)
+    - Implement retry logic for failed webhook deliveries
+  </Accordion>
+  
+  <Accordion title="API Token Security">
+    - Never commit API tokens to version control
+    - Use environment variables to store tokens
+    - Grant minimum required permissions (principle of least privilege)
+    - Rotate tokens regularly
+    - Revoke tokens immediately when compromised
+    - Monitor token usage via the lastUsedAt timestamp
+  </Accordion>
+  
+  <Accordion title="Network Security">
+    - Use HTTPS for all API requests
+    - Implement rate limiting in your application
+    - Monitor for unusual patterns or unauthorized access
+    - Keep dependencies up to date
+  </Accordion>
+</AccordionGroup>
+
+## Getting Started
+
+<Steps>
+  <Step title="Create API Token">
+    Navigate to your workspace settings and create an API token with the permissions your application needs. See [API Tokens](/integrations/api-tokens) for details.
+  </Step>
+  
+  <Step title="Set Up Webhooks">
+    Configure webhook endpoints to receive real-time notifications. See [Webhooks](/integrations/webhooks) for implementation details.
+  </Step>
+  
+  <Step title="Test Integration">
+    Test your integration in a development environment before deploying to production. Use test data to verify webhook delivery and API token permissions.
+  </Step>
+  
+  <Step title="Monitor & Maintain">
+    Monitor your integration for errors, track webhook delivery success rates, and review API token usage regularly.
+  </Step>
+</Steps>
+
+## Support
+
+Need help with your integration? Check out our documentation or reach out to our support team.

@@ -1,0 +1,486 @@
+---
+title: 'Deals'
+description: 'Manage sales deals and pipelines'
+api: 'POST /trpc/deals.{procedure}'
+---
+
+## Overview
+
+The deals router manages sales opportunities through customizable pipelines with dynamic stages.
+
+## Data Structure
+
+<ResponseField name="id" type="string" required>
+  Unique deal identifier
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required>
+  Workspace this deal belongs to
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Deal name/title
+</ResponseField>
+
+<ResponseField name="emoji" type="string">
+  Optional emoji icon
+</ResponseField>
+
+<ResponseField name="value" type="number">
+  Deal value (USD cents)
+</ResponseField>
+
+<ResponseField name="probability" type="number">
+  Win probability (0-100)
+</ResponseField>
+
+<ResponseField name="pipelineId" type="string">
+  Pipeline ID
+</ResponseField>
+
+<ResponseField name="stageId" type="string">
+  Current pipeline stage ID
+</ResponseField>
+
+<ResponseField name="stage" type="enum">
+  Legacy stage: `lead`, `qualified`, `proposal`, `negotiation`, `closed_won`, `closed_lost`
+</ResponseField>
+
+<ResponseField name="stageEnteredAt" type="datetime">
+  When deal entered current stage
+</ResponseField>
+
+<ResponseField name="expectedCloseDate" type="datetime">
+  Expected close date
+</ResponseField>
+
+<ResponseField name="closedAt" type="datetime">
+  Actual close date (set automatically for won/lost stages)
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Deal notes or description
+</ResponseField>
+
+<ResponseField name="contactId" type="string">
+  Linked contact ID
+</ResponseField>
+
+<ResponseField name="propertyId" type="string">
+  Linked property ID
+</ResponseField>
+
+<ResponseField name="companyId" type="string">
+  Linked company ID
+</ResponseField>
+
+<ResponseField name="ownerId" type="string">
+  Deal owner user ID
+</ResponseField>
+
+<ResponseField name="visibility" type="enum">
+  Visibility: `workspace`, `private`, `shared`
+</ResponseField>
+
+<ResponseField name="workspaceAccessLevel" type="enum">
+  Workspace access: `view`, `full_access`
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime">
+  Last update timestamp
+</ResponseField>
+
+## List Deals
+
+```typescript deals.list
+const result = await client.deals.list.query({
+  limit: 50,
+  pipelineId: 'pipeline_id',
+  stageId: 'stage_id',
+  contactId: 'contact_id',
+  ownerId: 'user_id',
+  sortField: 'value',
+  sortDirection: 'desc',
+});
+```
+
+<ParamField path="limit" type="number" default="50">
+  Records to return
+</ParamField>
+
+<ParamField path="offset" type="number">
+  Records to skip
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search by deal name
+</ParamField>
+
+<ParamField path="pipelineId" type="string">
+  Filter by pipeline
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  Filter by current stage ID
+</ParamField>
+
+<ParamField path="stage" type="enum">
+  Legacy stage filter
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Filter by linked contact
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Filter by linked property
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Filter by linked company
+</ParamField>
+
+<ParamField path="ownerId" type="string">
+  Filter by owner
+</ParamField>
+
+<ParamField path="listId" type="string">
+  Filter by list membership
+</ParamField>
+
+<ParamField path="tagIds" type="string[]">
+  Filter by tags
+</ParamField>
+
+<ParamField path="sortField" type="enum" default="createdAt">
+  Sort field: `name`, `stage`, `value`, `createdAt`, `expectedCloseDate`
+</ParamField>
+
+<ParamField path="sortDirection" type="enum" default="desc">
+  Sort direction: `asc`, `desc`
+</ParamField>
+
+<ResponseField name="items" type="array">
+  Array of deal objects with joined data:
+  - `stageName`, `stageType`, `stageColor`, `stagePosition` - Dynamic stage info
+  - `contactFirstName`, `contactLastName`, `contactAvatarUrl` - Contact data
+  - `propertyAddress`, `propertyLatitude`, `propertyLongitude` - Property data
+  - `companyName` - Company data
+  - `ownerName`, `ownerImage` - Owner data
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total count
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string">
+  Pagination cursor
+</ResponseField>
+
+## Get Deal by ID
+
+```typescript deals.getById
+const deal = await client.deals.getById.query('deal_id');
+```
+
+Returns deal with joined stage and entity data.
+
+## Create Deal
+
+```typescript deals.create
+const deal = await client.deals.create.mutate({
+  name: 'Office Lease - Acme Corp',
+  value: 50000000, // $500k
+  probability: 70,
+  pipelineId: 'pipeline_id',
+  stageId: 'stage_id',
+  contactId: 'contact_id',
+  propertyId: 'property_id',
+  expectedCloseDate: new Date('2024-06-30'),
+  ownerId: 'user_id', // Defaults to current user
+});
+```
+
+<ParamField path="name" type="string" required>
+  Deal name
+</ParamField>
+
+<ParamField path="value" type="number">
+  Deal value (cents)
+</ParamField>
+
+<ParamField path="probability" type="number">
+  Win probability (0-100)
+</ParamField>
+
+<ParamField path="pipelineId" type="string">
+  Pipeline ID (defaults to workspace default)
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  Initial stage ID
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Linked contact
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Linked property
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Linked company
+</ParamField>
+
+<ParamField path="expectedCloseDate" type="datetime">
+  Expected close date
+</ParamField>
+
+<ParamField path="ownerId" type="string">
+  Owner user ID (defaults to current user)
+</ParamField>
+
+### Stage Automation
+
+When creating a deal in a won/lost stage, `closedAt` is automatically set to the current timestamp.
+
+## Update Deal
+
+```typescript deals.update
+const updated = await client.deals.update.mutate({
+  id: 'deal_id',
+  stageId: 'new_stage_id',
+  probability: 85,
+});
+```
+
+<ParamField path="id" type="string" required>
+  Deal ID
+</ParamField>
+
+### Stage Change Automation
+
+When `stageId` changes:
+- `stageEnteredAt` is updated to current timestamp
+- If moving to won/lost stage: `closedAt` is set
+- If moving back to active stage: `closedAt` is cleared
+
+## Delete Deal
+
+```typescript deals.delete
+await client.deals.delete.mutate('deal_id');
+```
+
+<Warning>
+  Requires admin or owner role.
+</Warning>
+
+## Pipeline View
+
+```typescript deals.pipeline
+const pipeline = await client.deals.pipeline.query();
+```
+
+Returns deals grouped by pipeline stages:
+
+<ResponseField name="pipelineId" type="string">
+  Default pipeline ID
+</ResponseField>
+
+<ResponseField name="pipelineName" type="string">
+  Pipeline name
+</ResponseField>
+
+<ResponseField name="stages" type="array">
+  Array of stage objects:
+  <Expandable title="Stage structure">
+    <ResponseField name="stage" type="string">
+      Stage ID
+    </ResponseField>
+    <ResponseField name="stageName" type="string">
+      Stage display name
+    </ResponseField>
+    <ResponseField name="stageType" type="enum">
+      Stage type: `active`, `won`, `lost`
+    </ResponseField>
+    <ResponseField name="stageColor" type="string">
+      Hex color code
+    </ResponseField>
+    <ResponseField name="stagePosition" type="number">
+      Display order
+    </ResponseField>
+    <ResponseField name="deals" type="array">
+      Deals in this stage
+    </ResponseField>
+    <ResponseField name="count" type="number">
+      Number of deals
+    </ResponseField>
+    <ResponseField name="totalValue" type="number">
+      Sum of deal values
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Analytics
+
+```typescript deals.analytics
+const analytics = await client.deals.analytics.query();
+```
+
+Returns pipeline performance metrics:
+
+<ResponseField name="totalDeals" type="number">
+  Total number of deals
+</ResponseField>
+
+<ResponseField name="activeDeals" type="number">
+  Deals in active stages
+</ResponseField>
+
+<ResponseField name="totalValue" type="number">
+  Sum of all active deal values
+</ResponseField>
+
+<ResponseField name="weightedValue" type="number">
+  Sum of (value × probability%) for active deals
+</ResponseField>
+
+<ResponseField name="avgDaysToClose" type="number">
+  Average days from creation to close
+</ResponseField>
+
+<ResponseField name="winRate" type="number">
+  Percentage of closed deals that were won
+</ResponseField>
+
+<ResponseField name="lossRate" type="number">
+  Percentage of closed deals that were lost
+</ResponseField>
+
+<ResponseField name="stalledDeals" type="number">
+  Deals in same stage for 30+ days
+</ResponseField>
+
+<ResponseField name="stages" type="array">
+  Per-stage analytics:
+  <Expandable title="Stage metrics">
+    <ResponseField name="id" type="string">
+      Stage ID
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Stage name
+    </ResponseField>
+    <ResponseField name="count" type="number">
+      Deal count
+    </ResponseField>
+    <ResponseField name="value" type="number">
+      Total value
+    </ResponseField>
+    <ResponseField name="weightedValue" type="number">
+      Weighted value
+    </ResponseField>
+    <ResponseField name="avgDaysInStage" type="number">
+      Average time in stage
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Permissions & Sharing
+
+### Get Shares
+
+```typescript deals.getShares
+const shares = await client.deals.getShares.query({
+  dealId: 'deal_id',
+});
+```
+
+<ResponseField name="visibility" type="enum">
+  Deal visibility setting
+</ResponseField>
+
+<ResponseField name="workspaceAccessLevel" type="enum">
+  Default workspace access
+</ResponseField>
+
+<ResponseField name="ownerId" type="string">
+  Deal owner ID
+</ResponseField>
+
+<ResponseField name="shares" type="array">
+  Individual user shares with access levels
+</ResponseField>
+
+### Update Shares
+
+```typescript deals.updateShares
+await client.deals.updateShares.mutate({
+  dealId: 'deal_id',
+  visibility: 'shared',
+  workspaceAccessLevel: 'view',
+  shares: [
+    { userId: 'user1', accessLevel: 'full_access' },
+    { userId: 'user2', accessLevel: 'view' },
+  ],
+});
+```
+
+<ParamField path="dealId" type="string" required>
+  Deal ID
+</ParamField>
+
+<ParamField path="visibility" type="enum">
+  Visibility: `workspace`, `private`, `shared`
+</ParamField>
+
+<ParamField path="workspaceAccessLevel" type="enum">
+  Default workspace access: `view`, `full_access`
+</ParamField>
+
+<ParamField path="shares" type="array">
+  Individual user shares (replaces all existing shares)
+  <Expandable title="Share object">
+    <ParamField path="userId" type="string" required>
+      User ID
+    </ParamField>
+    <ParamField path="accessLevel" type="enum" required>
+      Access level: `view`, `full_access`, `no_access`
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Note>
+  Only the deal owner or workspace admins can manage permissions.
+</Note>
+
+### Get Workspace Members
+
+```typescript deals.getWorkspaceMembers
+const members = await client.deals.getWorkspaceMembers.query();
+```
+
+Returns workspace members for the permissions picker UI.
+
+## Aggregations
+
+```typescript deals.aggregations
+const stats = await client.deals.aggregations.query({
+  stageId: 'stage_id',
+  aggregations: [
+    { type: 'count' },
+    { type: 'sum', column: 'value' },
+    { type: 'avg', column: 'probability' },
+    { type: 'group', column: 'stage' },
+  ],
+});
+```
+
+Supported columns:
+- `name`, `stage`, `value`, `probability`
+- `createdAt`, `expectedCloseDate`, `closedAt`
+- `tags` (junction table)

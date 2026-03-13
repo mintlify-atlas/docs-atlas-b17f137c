@@ -1,0 +1,144 @@
+---
+title: CLI Overview
+description: Command-line interface for interacting with Relio
+---
+
+The Relio CLI (`relio`) is a powerful command-line tool for authenticating with your Relio workspace and managing API credentials. It provides a secure device flow authentication mechanism and stores credentials locally for seamless API access.
+
+## What is the Relio CLI?
+
+The Relio CLI enables you to:
+
+- **Authenticate securely** using OAuth-style device flow
+- **Manage multiple profiles** for different workspaces or environments
+- **Test API connectivity** to verify your credentials
+- **Store credentials locally** at `~/.config/relio/config.json`
+
+The CLI is particularly useful for:
+- Local development and testing
+- CI/CD pipeline authentication
+- Managing multiple Relio workspaces
+- Quick API access validation
+
+## Package Information
+
+The `relio-cli` package includes both the CLI tool and SDK modules:
+
+- **CLI command**: `relio`
+- **SDK modules**:
+  - `relio-cli/client` - Client SDK for API interactions
+  - `relio-cli/server` - Server-side utilities including webhook verification
+  - `relio-cli/core` - Core types and utilities
+
+## Available Commands
+
+### Authentication Commands
+
+<CardGroup cols={2}>
+  <Card title="login" icon="right-to-bracket" href="/cli/authentication#login-command">
+    Authenticate with a Relio workspace using device flow
+  </Card>
+  <Card title="logout" icon="right-from-bracket" href="/cli/authentication#logout-command">
+    Remove stored credentials for a profile
+  </Card>
+  <Card title="whoami" icon="user" href="/cli/authentication#whoami-command">
+    Display current authentication status and identity
+  </Card>
+  <Card title="auth test" icon="shield-check" href="/cli/authentication#testing-authentication">
+    Test API key validity with the server
+  </Card>
+</CardGroup>
+
+### Profile Management
+
+<CardGroup cols={2}>
+  <Card title="profiles list" icon="list">
+    List all configured profiles
+  </Card>
+  <Card title="profiles use" icon="arrow-pointer">
+    Switch to a different profile
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+<Steps>
+  <Step title="Install the CLI">
+    Install the Relio CLI via npm, pnpm, or yarn:
+    
+    ```bash
+    npm install -g relio-cli
+    ```
+  </Step>
+  
+  <Step title="Login to your workspace">
+    Run the login command and approve the request in your browser:
+    
+    ```bash
+    relio login
+    ```
+  </Step>
+  
+  <Step title="Verify authentication">
+    Check your authentication status:
+    
+    ```bash
+    relio whoami
+    ```
+  </Step>
+</Steps>
+
+## Configuration Storage
+
+Credentials are stored securely in:
+
+```
+~/.config/relio/config.json
+```
+
+This configuration file contains:
+- **API keys** for each profile
+- **Server URLs** for your Relio instances
+- **Workspace IDs** associated with each profile
+- **Default profile** selection
+
+<Warning>
+Keep your `config.json` file secure. It contains API keys that grant access to your Relio workspace.
+</Warning>
+
+## Environment Variables
+
+### RELIO_SERVER_URL
+
+Override the default server URL for all commands:
+
+```bash
+export RELIO_SERVER_URL="https://your-relio-instance.com"
+relio login
+```
+
+Default: `http://localhost:3000`
+
+## Getting Help
+
+View command-specific help by adding `--help` or `-h`:
+
+```bash
+relio --help
+relio login --help
+relio whoami --help
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/cli/installation">
+    Learn how to install the Relio CLI
+  </Card>
+  <Card title="Authentication" icon="key" href="/cli/authentication">
+    Understand the authentication flow and commands
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/introduction">
+    Explore the tRPC API documentation
+  </Card>
+</CardGroup>

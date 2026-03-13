@@ -1,0 +1,311 @@
+---
+title: User Management
+description: Invite team members and manage workspace permissions
+icon: users
+---
+
+## Overview
+
+User management allows workspace owners to invite team members, assign roles, and control access to workspace resources. Only workspace **owners** can manage users and invitations.
+
+<Info>
+User management operations require the **owner** role. Admins and members cannot invite or remove users.
+</Info>
+
+## Workspace Roles
+
+Relio uses a role-based access control system with three distinct roles:
+
+### Owner
+
+The workspace owner has unrestricted access to all features and settings.
+
+**Permissions:**
+- Full access to all workspace data and settings
+- Manage user invitations and memberships
+- Manage billing and subscriptions
+- Delete the workspace
+- All admin and member permissions
+
+**Restrictions:**
+- Only one owner per workspace
+- Owner role cannot be transferred (contact support for ownership transfer)
+
+### Admin
+
+Admins have elevated permissions for managing workspace resources and data.
+
+**Permissions:**
+- Create, edit, and delete records (contacts, properties, companies, deals)
+- Manage custom fields and field definitions
+- Manage deal pipelines and stages
+- Manage email templates
+- Manage workspace integrations
+- Configure views and lists (delete shared resources)
+- Manage territories and assignments
+- Manage tags and object appearance
+- Access workspace analytics and AI usage data
+- Manage file sharing settings
+- Create and revoke API tokens
+- Configure webhooks
+
+**Restrictions:**
+- Cannot invite or remove users
+- Cannot access billing settings
+- Cannot delete the workspace
+
+### Member
+
+Members have standard user access for day-to-day CRM operations.
+
+**Permissions:**
+- View and edit own records
+- Create new contacts, properties, companies, and deals
+- Add activities, tasks, and notes
+- Upload and manage files
+- Use custom fields (but not create/edit definitions)
+- Use existing pipelines (but not modify pipeline structure)
+- Create personal lists and views
+- Use AI features within quota limits
+
+**Restrictions:**
+- Cannot delete records permanently
+- Cannot create or modify custom fields
+- Cannot modify pipeline structure
+- Cannot access admin or owner settings
+
+## Inviting Users
+
+<Steps>
+  <Step title="Navigate to team settings">
+    From the workspace settings, click on "Team" or "Members" to access user management.
+  </Step>
+  
+  <Step title="Click 'Invite Member'">
+    Enter the email address of the person you want to invite.
+  </Step>
+  
+  <Step title="Select a role">
+    Choose the appropriate role for the new member:
+    - **Admin**: For team leads who need elevated permissions
+    - **Member**: For standard CRM users
+    
+    <Note>
+    You cannot invite additional owners. Contact support if ownership transfer is needed.
+    </Note>
+  </Step>
+  
+  <Step title="Send invitation">
+    Click "Send Invite" to deliver the invitation email.
+  </Step>
+</Steps>
+
+### Invitation Details
+
+- Invitations are sent via email to the specified address
+- Invitations expire after a configurable period (typically 7 days)
+- Recipients must create a Relio account or sign in to accept
+- Invitation status can be: `pending`, `accepted`, or `expired`
+
+## Managing Members
+
+### View Member List
+
+The team settings page displays:
+- Member name and email
+- Current role (owner, admin, member)
+- Join date
+- Last active timestamp
+- User avatar/profile picture
+
+### Change Member Role
+
+<Steps>
+  <Step title="Locate the member">
+    Find the member in the team list.
+  </Step>
+  
+  <Step title="Open role dropdown">
+    Click on the current role to open the role selection menu.
+  </Step>
+  
+  <Step title="Select new role">
+    Choose the new role (admin or member).
+  </Step>
+  
+  <Step title="Confirm change">
+    The role change takes effect immediately.
+  </Step>
+</Steps>
+
+<Warning>
+Role changes take effect immediately. Members promoted to admin will instantly gain elevated permissions.
+</Warning>
+
+### Remove Members
+
+<Steps>
+  <Step title="Locate the member">
+    Find the member you want to remove from the workspace.
+  </Step>
+  
+  <Step title="Click 'Remove'">
+    Click the remove button (typically a trash icon or "Remove" link).
+  </Step>
+  
+  <Step title="Confirm removal">
+    Confirm that you want to remove this member from the workspace.
+  </Step>
+</Steps>
+
+**What happens when a member is removed:**
+- User immediately loses access to the workspace
+- User's data and activities remain in the workspace
+- User can be re-invited later if needed
+- User's personal data (account) is not deleted
+
+## Member Schema
+
+The member table structure:
+
+```typescript
+interface Member {
+  id: string;              // Unique member ID
+  organizationId: string;  // Workspace ID
+  userId: string;          // User's account ID
+  role: string;            // "owner" | "admin" | "member"
+  createdAt: Date;         // When user joined workspace
+}
+```
+
+## Role Checks in Code
+
+Relio uses middleware procedures to enforce role-based access:
+
+```typescript
+// Admin or owner required
+export const adminProcedure = workspaceProcedure.use(({ ctx, next }) => {
+  if (ctx.role !== "admin" && ctx.role !== "owner") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required."
+    });
+  }
+  return next({ ctx });
+});
+
+// Owner only
+export const ownerProcedure = workspaceProcedure.use(({ ctx, next }) => {
+  if (ctx.role !== "owner") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Owner access required."
+    });
+  }
+  return next({ ctx });
+});
+```
+
+## API Reference
+
+### List Members
+
+```typescript
+// Get all members in the workspace
+const members = await api.members.list.query();
+```
+
+### Invite Member
+
+```typescript
+// Send an invitation (owner only)
+await api.members.invite.mutate({
+  email: "colleague@example.com",
+  role: "admin" // or "member"
+});
+```
+
+### Update Member Role
+
+```typescript
+// Change a member's role (owner only)
+await api.members.updateRole.mutate({
+  memberId: "mem_123...",
+  role: "admin"
+});
+```
+
+### Remove Member
+
+```typescript
+// Remove a member from the workspace (owner only)
+await api.members.remove.mutate({
+  memberId: "mem_123..."
+});
+```
+
+## Best Practices
+
+### Security
+
+1. **Limit admin roles**: Only grant admin access to trusted team leads
+2. **Regular audits**: Review member list quarterly to remove inactive users
+3. **Principle of least privilege**: Default to member role unless admin access is needed
+4. **Onboarding**: Create a checklist for new team members
+5. **Offboarding**: Remove access immediately when team members leave
+
+### Organization
+
+1. **Use descriptive names**: Ensure member names are clear and professional
+2. **Set profile pictures**: Encourage team members to add avatars
+3. **Document roles**: Maintain a list of who has admin access and why
+4. **Communication**: Notify team when roles change or new members join
+
+### Invitations
+
+1. **Verify email addresses**: Double-check emails before sending invitations
+2. **Set expectations**: Explain the role when inviting new members
+3. **Monitor status**: Check for expired invitations and resend if needed
+4. **Welcome message**: Send a welcome email with onboarding resources
+
+## Troubleshooting
+
+### Invitation Not Received
+
+- Check spam/junk folders
+- Verify the email address is correct
+- Resend the invitation
+- Ensure the recipient's email server isn't blocking Relio emails
+
+### Cannot Change Role
+
+- Verify you have owner permissions
+- Ensure the target member exists and is active
+- Cannot change the owner role (contact support)
+
+### Member Cannot Access Workspace
+
+- Verify the member has accepted the invitation
+- Check that the member hasn't been removed
+- Ensure the member is signed in to the correct account
+- Verify the member has selected the correct active workspace
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Workspace Settings" icon="settings" href="/admin/workspace-settings">
+    Configure workspace-level settings and preferences
+  </Card>
+  
+  <Card title="API Tokens" icon="key" href="/integrations/api-tokens">
+    Create API tokens for programmatic access
+  </Card>
+  
+  <Card title="Workspace Settings" icon="gear" href="/admin/workspace-settings">
+    Manage workspace configuration
+  </Card>
+  
+  <Card title="API Tokens" icon="key" href="/integrations/api-tokens">
+    Create and manage API access tokens
+  </Card>
+</CardGroup>

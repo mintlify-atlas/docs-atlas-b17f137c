@@ -1,0 +1,462 @@
+---
+title: "Properties"
+description: "Manage your real estate portfolio and property listings"
+icon: "house"
+---
+
+## Overview
+
+Properties are at the heart of Relio's real estate CRM. Track listings, manage your portfolio, enrich with market data, and connect properties to contacts, companies, and deals. Relio supports residential, commercial, multi-family, industrial, and land properties.
+
+## Creating Properties
+
+<Steps>
+  <Step title="Navigate to Properties">
+    Click "Properties" in the main navigation
+  </Step>
+  
+  <Step title="Add New Property">
+    Click "+ New Property" in the top right
+  </Step>
+  
+  <Step title="Enter Address">
+    Add the property address (required field)
+  </Step>
+  
+  <Step title="Auto-Geocoding">
+    Relio automatically geocodes the address to get coordinates
+  </Step>
+  
+  <Step title="Add Property Details">
+    Fill in property type, price, size, and other details
+  </Step>
+</Steps>
+
+<Tip>
+  If the address is valid, Relio will automatically populate latitude, longitude, city, state, and zip code using Mapbox geocoding.
+</Tip>
+
+## Property Fields
+
+### Basic Information
+
+<CardGroup cols={2}>
+  <Card title="Location" icon="location-dot">
+    Address, city, state, zip, country, and coordinates
+  </Card>
+  <Card title="Property Type" icon="building">
+    Residential, commercial, multi-family, industrial, or land
+  </Card>
+  <Card title="Status" icon="signal">
+    Active, pending, sold, off-market, or archived
+  </Card>
+  <Card title="Identification" icon="hashtag">
+    MLS ID, APN (Assessor Parcel Number), parcel ID
+  </Card>
+</CardGroup>
+
+### Property Details
+
+#### Financial Information
+
+- **List Price**: Current asking price (stored in cents)
+- **Sold Price**: Final sale price if sold
+- **Estimated Value**: Market value estimate
+- **Cap Rate**: Capitalization rate percentage
+- **Equity**: Equity percentage
+- **1031 Exchange**: Whether eligible for 1031 exchange
+
+#### Physical Characteristics
+
+```typescript
+{
+  bedrooms: 3,
+  bathrooms: 2.5,        // Supports half baths
+  units: 4,              // For multi-family
+  sqft: 2400,            // Interior square footage
+  lotSqft: 8000,         // Lot size
+  yearBuilt: 1985,
+  stories: 2,
+  rooms: 8,
+  parkingSpaces: 2,
+  pool: "inground",
+  garage: "attached",
+  garageSqft: 400
+}
+```
+
+#### Construction & Features
+
+- **Construction Type**: Frame, concrete, steel, etc.
+- **Exterior Walls**: Stucco, brick, siding, etc.
+- **Roof Type**: Composition, tile, metal, etc.
+- **Foundation**: Slab, crawl space, basement
+- **Heating/Cooling**: HVAC system details
+- **Fireplace**: Yes/no and type
+
+### County Assessor Data
+
+Enriched properties include official county records:
+
+- **Assessed Values**: Land, improvement, and total values
+- **Annual Tax**: Property tax amount and year
+- **Zoning**: Zoning classification
+- **Legal Description**: Official property description
+- **Subdivision**: Neighborhood or development name
+- **Lot Acres**: Lot size in acres
+
+### Owner Information
+
+Track property ownership:
+
+```typescript
+{
+  ownerName: "John Smith",
+  ownerName2: "Jane Smith",           // Co-owner
+  ownerOccupancyStatus: "owner_occupied",
+  ownerMailingAddress: "PO Box 123",
+  ownerMailingCity: "Sacramento",
+  ownerMailingState: "CA",
+  ownerMailingZip: "95814",
+  ownershipType: "individual",
+  ownershipTransferDate: "2020-03-15"
+}
+```
+
+<Note>
+  Owner information is populated through county data enrichment or manual entry.
+</Note>
+
+## Property Enrichment
+
+Relio provides multi-source enrichment for properties:
+
+### Automatic Enrichment
+
+When you add a property address, Relio can automatically:
+
+1. **Geocode**: Convert address to lat/lng coordinates
+2. **Walk Score**: Fetch walkability, transit, and bike scores
+3. **Regrid Data**: Pull parcel and assessor data
+4. **Smarty Streets**: Get structural and ownership details
+
+### Manual Enrichment
+
+Enrich any property on-demand:
+
+<Steps>
+  <Step title="Open Property">
+    Navigate to the property detail page
+  </Step>
+  
+  <Step title="Click Enrich">
+    Click "Enrich" in the property header
+  </Step>
+  
+  <Step title="Multi-Source Fetch">
+    Relio queries Mapbox, Walk Score, Regrid, and Smarty
+  </Step>
+  
+  <Step title="Review Results">
+    See which fields were populated and from which sources
+  </Step>
+</Steps>
+
+Enrichment sources (in order of execution):
+
+```typescript
+{
+  geocoded: true,           // Mapbox geocoding
+  walkScore: 82,            // Walk Score API
+  transitScore: 65,
+  bikeScore: 73,
+  walkScoreAvailable: true,
+  regrid: {
+    source: "regrid",
+    llUuid: "...",          // Persistent parcel ID
+    appliedFields: ["yearBuilt", "sqft", "bedrooms"],
+    countyParcelUpserted: true
+  },
+  smarty: {
+    source: "smarty",
+    appliedFields: ["ownerName", "lastSalePrice"]
+  }
+}
+```
+
+### Street View Capture
+
+Capture Google Street View imagery:
+
+```typescript
+const { imageUrl } = await trpc.properties.captureStreetView.mutate({
+  id: "property_id"
+});
+// Stores image in R2 storage and adds to property images
+```
+
+The street view image is automatically added to the property's image gallery.
+
+## Property Images
+
+Manage property photos and media:
+
+- Upload multiple images
+- Reorder images (first image is the cover photo)
+- Street view images are automatically prepended
+- Images are stored in R2 cloud storage
+- Support for external image URLs
+
+```typescript
+{
+  images: [
+    "https://cdn.relio.com/.../streetview.jpg",
+    "https://cdn.relio.com/.../exterior-1.jpg",
+    "https://cdn.relio.com/.../interior-1.jpg"
+  ]
+}
+```
+
+## Map View
+
+Visualize properties on an interactive map:
+
+### Boundary Display
+
+Visualize properties on a map:
+
+- View all properties with coordinates on the map
+- Filter map by property type, status, and other criteria
+- Parcel boundaries displayed when available
+- Click properties to see quick details
+- Draw custom areas to filter properties
+
+### Geographic Filtering
+
+Query properties by bounding box:
+
+```typescript
+const { items } = await trpc.properties.list.query({
+  swLat: 37.7,   // Southwest corner
+  swLng: -122.5,
+  neLat: 37.8,   // Northeast corner
+  neLng: -122.4
+});
+```
+
+## Property Search
+
+### Advanced Filters
+
+Filter properties by:
+
+- **Text Search**: Address, city, or MLS ID
+- **Property Type**: Residential, commercial, etc.
+- **Status**: Active, pending, sold, etc.
+- **Location**: City, county, state, zip code
+- **Price Range**: Min and max list price
+- **Size**: Bedrooms, bathrooms, square footage
+- **Year Built**: Min and max year
+- **Units**: Min and max unit count
+- **Financial**: Equity range, cap rate range
+- **Features**: 1031 exchange eligibility
+- **Tags**: Custom tags
+
+### Saved Views
+
+Create filtered views for quick access:
+
+- "Hot Multi-Family Deals"
+- "My Active Listings"
+- "High Cap Rate Properties"
+- "Recently Sold Comps"
+
+### Property Lists
+
+Organize properties into lists:
+
+- Target acquisition lists
+- Portfolio tracking
+- Comp lists
+- Market analysis groups
+
+## Property Relationships
+
+### Linked Contacts
+
+Connect people to properties:
+
+- **Owners**: Current or previous property owners
+- **Buyers**: Interested buyers or prospects
+- **Agents**: Listing or buyer agents
+- **Others**: Contractors, inspectors, etc.
+
+The relationship type is stored in the `linked_records` table with labels like "owner", "buyer", "agent", etc.
+
+### Linked Companies
+
+Track organizational relationships:
+
+- Property management companies
+- Ownership entities (LLCs, trusts)
+- Tenant companies
+- Service providers
+
+### Linked Deals
+
+View all deals associated with a property:
+
+- Active negotiations
+- Closed transactions
+- Lost opportunities
+- Deal timeline and value
+
+## Unit Mixes
+
+For multi-family properties, track unit types:
+
+```typescript
+// Add unit mix
+await trpc.properties.createUnitMix.mutate({
+  propertyId: "property_id",
+  data: {
+    name: "1BR/1BA",
+    units: 8,
+    minSquareFootage: 650,
+    maxSquareFootage: 750,
+    minRent: 1800,
+    maxRent: 2200
+  }
+});
+
+// List unit mixes
+const mixes = await trpc.properties.listUnitMixes.query({
+  propertyId: "property_id"
+});
+```
+
+Unit mixes help with:
+- Rent roll analysis
+- Income projections
+- Comp analysis
+- Investment underwriting
+
+## Sale History
+
+Track transaction history:
+
+```typescript
+await trpc.properties.createSaleHistory.mutate({
+  propertyId: "property_id",
+  data: {
+    buyerId: "contact_id",
+    sellerId: "contact_id",
+    saleDate: new Date("2023-06-15"),
+    salePrice: 1250000,
+    askingPrice: 1300000,
+    transactionType: "sale",
+    pricePerSquareFoot: 520,
+    pricePerUnit: 312500,
+    capRate: 5.8,
+    transferredOwnershipPercentage: 100
+  }
+});
+```
+
+Sale history helps with:
+- Property valuation
+- Market analysis
+- Investment tracking
+- Performance reporting
+
+## County Data Updates
+
+Identify properties with updated county records:
+
+```typescript
+const { items } = await trpc.properties.list.query({
+  countyUpdates: true
+});
+```
+
+This returns properties where county data differs from workspace data, helping you:
+
+- Keep records current
+- Catch assessment changes
+- Update tax information
+- Verify ownership transfers
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Data Entry">
+    - Always start with a complete, accurate address
+    - Run enrichment immediately after creating properties
+    - Add MLS ID and APN when available
+    - Upload at least one photo for visual reference
+    - Keep status updated (active, pending, sold)
+  </Accordion>
+  
+  <Accordion title="Portfolio Management">
+    - Tag properties by investment strategy
+    - Create lists for different property classes
+    - Link all relevant contacts and companies
+    - Track unit mixes for multi-family
+    - Document sale history for analytics
+  </Accordion>
+  
+  <Accordion title="Enrichment Strategy">
+    - Enrich all new properties immediately
+    - Re-enrich annually to catch assessment changes
+    - Capture Street View for rural properties
+    - Verify enriched data before using in reports
+    - Manual corrections take precedence
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+Key property operations:
+
+```typescript
+// List properties
+const { items, total } = await trpc.properties.list.query({
+  limit: 50,
+  offset: 0,
+  propertyType: "multi_family",
+  status: "active",
+  minPrice: 500000,
+  maxPrice: 2000000,
+  minUnits: 5,
+  sort: { field: "listPrice", direction: "asc" }
+});
+
+// Get property by ID
+const property = await trpc.properties.getById.query("property_id");
+
+// Create property
+const newProperty = await trpc.properties.create.mutate({
+  address: "123 Main St",
+  city: "Sacramento",
+  state: "CA",
+  propertyType: "residential",
+  status: "active"
+});
+
+// Update property
+const updated = await trpc.properties.update.mutate({
+  id: "property_id",
+  listPrice: 1250000,
+  status: "pending"
+});
+
+// Enrich property
+const enriched = await trpc.properties.enrich.mutate({
+  id: "property_id"
+});
+
+// Geocode property
+const geocoded = await trpc.properties.geocodeProperty.mutate(
+  "property_id"
+);
+```

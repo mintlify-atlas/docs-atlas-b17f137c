@@ -1,0 +1,569 @@
+---
+title: Territories
+description: Define and manage geographic sales territories with spatial boundaries
+icon: map-pin
+---
+
+## Overview
+
+Territories enable geographic organization of your sales and service areas. Define custom boundaries on the map, assign team members, and track coverage and performance metrics. Built on PostGIS spatial database technology, territories provide powerful location-based insights.
+
+<Info>
+  Territory features require properties and contacts to have valid latitude/longitude coordinates.
+</Info>
+
+## Creating Territories
+
+### Drawing Boundaries
+
+<Steps>
+  <Step title="Access Territory Mode">
+    Navigate to the map view and click "Territory" in the draw tools
+  </Step>
+  
+  <Step title="Draw on Map">
+    Click points on the map to create vertices of your territory boundary
+  </Step>
+  
+  <Step title="Complete Polygon">
+    Double-click to close the polygon or click the first point
+  </Step>
+  
+  <Step title="Configure Territory">
+    Set name, color, description, and assignment mode
+  </Step>
+</Steps>
+
+### API Creation
+
+```typescript
+const territory = await trpc.territories.create.mutate({
+  name: "Downtown District",
+  color: "#3b82f6",
+  description: "City center coverage area including financial district",
+  boundary: {
+    type: "Polygon",
+    coordinates: [[
+      [-122.4194, 37.7749],
+      [-122.4194, 37.7849],
+      [-122.4094, 37.7849],
+      [-122.4094, 37.7749],
+      [-122.4194, 37.7749]
+    ]]
+  },
+  isExclusive: true
+});
+```
+
+**Boundary Format:**
+Territories use GeoJSON geometry format (Polygon or MultiPolygon) with coordinates in `[longitude, latitude]` order.
+
+### Territory Properties
+
+<ResponseField name="name" type="string" required>
+  Territory display name (e.g., "North Region", "Downtown District")
+</ResponseField>
+
+<ResponseField name="color" type="string" required>
+  Hex color code for map visualization (e.g., "#3b82f6")
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Optional details about the territory coverage and purpose
+</ResponseField>
+
+<ResponseField name="boundary" type="GeoJSON" required>
+  Polygon or MultiPolygon geometry defining the territory area
+</ResponseField>
+
+<ResponseField name="isExclusive" type="boolean" default="false">
+  If true, only one team member can be assigned. If false, multiple members can share the territory.
+</ResponseField>
+
+## Assigning Team Members
+
+### Exclusive Territories
+
+For exclusive territories, only one member can be assigned at a time:
+
+```typescript
+// Assign to a single user (replaces previous assignment)
+await trpc.territories.assign.mutate({
+  territoryId: "territory_id",
+  userIds: ["user_id"]
+});
+```
+
+<Warning>
+  Attempting to assign multiple users to an exclusive territory will result in an error.
+</Warning>
+
+### Shared Territories
+
+For non-exclusive territories, assign multiple team members:
+
+```typescript
+// Assign multiple users to shared territory
+await trpc.territories.assign.mutate({
+  territoryId: "territory_id",
+  userIds: ["user_1", "user_2", "user_3"]
+});
+```
+
+**Assignment Logic:**
+- Exclusive territories replace all existing assignments
+- Shared territories add new assignments without removing existing ones
+- Duplicate assignments are ignored (no duplicates created)
+
+### Unassigning Members
+
+```typescript
+await trpc.territories.unassign.mutate({
+  territoryId: "territory_id",
+  userId: "user_id"
+});
+```
+
+## Viewing Territories
+
+### List All Territories
+
+```typescript
+const territories = await trpc.territories.list.query({
+  memberId: "member_id" // optional: filter by assigned member
+});
+
+territories.forEach(t => {
+  console.log(`${t.name} (${t.color})`);
+  console.log(`Assignees: ${t.assignees.length}`);
+  t.assignees.forEach(a => {
+    console.log(`  - ${a.userName}`);
+  });
+});
+```
+
+**Returned Data:**
+- Territory metadata (name, color, description)
+- Boundary geometry
+- Assignment details with user information
+- Creation timestamp
+
+### Get Single Territory
+
+```typescript
+const territory = await trpc.territories.getById.query("territory_id");
+
+console.log(territory.name);
+console.log(`Exclusive: ${territory.isExclusive}`);
+console.log(`Assignees: ${territory.assignees.length}`);
+```
+
+### GeoJSON Export
+
+Get all territories formatted as GeoJSON for map rendering:
+
+```typescript
+const geoJson = await trpc.territories.geoJson.query();
+
+// Returns FeatureCollection format
+console.log(geoJson.type); // "FeatureCollection"
+console.log(geoJson.features.length); // Number of territories
+
+geoJson.features.forEach(feature => {
+  console.log(feature.properties.name);
+  console.log(feature.properties.assignees);
+});
+```
+
+**Use with Mapbox:**
+```typescript
+import { Source, Layer } from 'react-map-gl';
+
+<Source id="territories" type="geojson" data={geoJson}>
+  <Layer
+    id="territory-fill"
+    type="fill"
+    paint={{
+      'fill-color': ['get', 'color'],
+      'fill-opacity': 0.12
+    }}
+  />
+  <Layer
+    id="territory-line"
+    type="line"
+    paint={{
+      'line-color': ['get', 'color'],
+      'line-width': 2
+    }}
+  />
+</Source>
+```
+
+## Coverage Analysis
+
+### Territory Coverage Metrics
+
+Analyze what's inside each territory:
+
+```typescript
+const coverage = await trpc.territories.coverage.query({
+  territoryIds: ["territory_1", "territory_2"] // optional filter
+});
+
+coverage.forEach(result => {
+  console.log(result.territoryName);
+  console.log(`  Properties: ${result.propertyCount}`);
+  console.log(`  Contacts: ${result.contactCount}`);
+  console.log(`  Deals: ${result.dealCount}`);
+});
+```
+
+**Spatial Analysis:**
+Uses PostGIS `ST_Within` function to determine which records fall within territory boundaries based on their latitude/longitude coordinates.
+
+### Finding Coverage Gaps
+
+Identify properties not covered by any territory:
+
+```typescript
+const gaps = await trpc.territories.gaps.query({
+  limit: 100 // optional, defaults to 100
+});
+
+console.log(`${gaps.length} properties without territory coverage`);
+
+gaps.forEach(property => {
+  console.log(`${property.address}, ${property.city}`);
+  console.log(`  Location: ${property.latitude}, ${property.longitude}`);
+});
+```
+
+<Note>
+  Gap analysis unions all territory boundaries and finds properties outside the combined area. Properties without coordinates are not included.
+</Note>
+
+## Performance Metrics
+
+### Member Performance by Territory
+
+Track team member activity and results within their assigned territories:
+
+```typescript
+const performance = await trpc.territories.memberPerformance.query();
+
+performance.forEach(result => {
+  console.log(`\n${result.territoryName}`);
+  console.log(`Properties in territory: ${result.propertyCount}`);
+  
+  result.members.forEach(member => {
+    console.log(`\n  ${member.userName}:`);
+    console.log(`    Activities: ${member.activityCount}`);
+    console.log(`    Deals: ${member.dealCount}`);
+    console.log(`    Deal Value: $${member.dealValue.toLocaleString()}`);
+  });
+});
+```
+
+**Metrics Calculated:**
+- Activity count (activities on properties in territory)
+- Deal count (deals on properties in territory)
+- Total deal value (sum of deal values)
+- Per-member breakdown
+
+<Tip>
+  Use performance metrics to identify top performers, areas needing support, and territory rebalancing opportunities.
+</Tip>
+
+## Updating Territories
+
+### Modify Territory Details
+
+```typescript
+await trpc.territories.update.mutate({
+  id: "territory_id",
+  name: "Updated Name",
+  description: "Updated description",
+  color: "#10b981",
+  boundary: {
+    // Updated boundary geometry
+    type: "Polygon",
+    coordinates: [/* new coordinates */]
+  },
+  isExclusive: false // Change to shared
+});
+```
+
+**Boundary Updates:**
+Changing the boundary automatically recalculates which properties and contacts fall within the territory.
+
+### Exclusivity Changes
+
+Converting between exclusive and shared:
+
+```typescript
+// Change to exclusive (will require removing extra assignees)
+await trpc.territories.update.mutate({
+  id: "territory_id",
+  isExclusive: true
+});
+
+// Ensure only one assignee
+const territory = await trpc.territories.getById.query("territory_id");
+if (territory.assignees.length > 1) {
+  // Remove all but one
+  const keepUserId = territory.assignees[0].userId;
+  for (let i = 1; i < territory.assignees.length; i++) {
+    await trpc.territories.unassign.mutate({
+      territoryId: "territory_id",
+      userId: territory.assignees[i].userId
+    });
+  }
+}
+```
+
+## Deleting Territories
+
+<Warning>
+  Deleting a territory removes all assignments and cannot be undone. Properties and contacts are not affected.
+</Warning>
+
+```typescript
+// Admin only
+await trpc.territories.delete.mutate("territory_id");
+```
+
+**Cascading Effects:**
+- All territory assignments are deleted
+- Territory boundary is removed from map
+- Historical data (activities, deals) remains unchanged
+- Properties/contacts are unaffected
+
+## Spatial Queries
+
+### Understanding PostGIS Integration
+
+Territories use PostGIS spatial functions for powerful geometric operations:
+
+**ST_Within:**
+Determines if a point is inside a polygon
+```sql
+ST_Within(
+  ST_SetSRID(ST_MakePoint(longitude, latitude), 4326),
+  territory_boundary
+)
+```
+
+**ST_MakeValid:**
+Ensures boundary geometries are valid
+```sql
+ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(boundary), 4326))
+```
+
+**ST_Union:**
+Combines multiple territories for gap analysis
+```sql
+ST_Union(boundary1, boundary2, ...)
+```
+
+### Coordinate System
+
+All spatial data uses WGS 84 (SRID 4326):
+- Longitude: -180 to 180 (East-West)
+- Latitude: -90 to 90 (North-South)
+- Format: `[longitude, latitude]`
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Territory Design">
+    - Create territories based on natural boundaries (neighborhoods, cities, regions)
+    - Consider travel time and accessibility when drawing boundaries
+    - Balance territory size and record count across assignments
+    - Use colors that are visually distinct on the map
+    - Document territory rules in the description field
+  </Accordion>
+  
+  <Accordion title="Assignment Strategy">
+    - Use exclusive territories for account-based coverage
+    - Use shared territories for team-based regions
+    - Review and rebalance assignments quarterly
+    - Assign based on workload, not just geography
+    - Consider member expertise and relationships
+  </Accordion>
+  
+  <Accordion title="Coverage Management">
+    - Regularly check for coverage gaps
+    - Ensure all high-value properties are covered
+    - Monitor territory overlap for shared territories
+    - Track performance metrics to identify issues
+    - Adjust boundaries as your market evolves
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Features
+
+### MultiPolygon Territories
+
+Create territories with multiple disconnected areas:
+
+```typescript
+await trpc.territories.create.mutate({
+  name: "Island Region",
+  color: "#8b5cf6",
+  boundary: {
+    type: "MultiPolygon",
+    coordinates: [
+      [/* First polygon coordinates */],
+      [/* Second polygon coordinates */],
+      [/* Third polygon coordinates */]
+    ]
+  }
+});
+```
+
+**Use Cases:**
+- Non-contiguous geographic areas
+- Multiple cities or neighborhoods
+- Island or archipelago coverage
+
+### Territory Hierarchies
+
+Organize territories in parent-child relationships:
+
+```typescript
+// Create regional territories
+const westRegion = await trpc.territories.create.mutate({
+  name: "West Region",
+  // Large boundary covering multiple states
+});
+
+const california = await trpc.territories.create.mutate({
+  name: "California (West Region)",
+  // Boundary within west region
+});
+
+const bayArea = await trpc.territories.create.mutate({
+  name: "Bay Area (California)",
+  // Boundary within California
+});
+```
+
+### Automated Assignment Rules
+
+Automatically assign properties to territories:
+
+```typescript
+// Find properties in a territory
+const coverage = await trpc.territories.coverage.query({
+  territoryIds: ["territory_id"]
+});
+
+if (coverage[0].propertyCount > 0) {
+  // Get the assignees
+  const territory = await trpc.territories.getById.query("territory_id");
+  const primaryAssignee = territory.assignees[0];
+  
+  // Auto-assign properties to the territory owner
+  // (Custom implementation based on your workflow)
+}
+```
+
+## Integration Examples
+
+### With Properties
+
+```typescript
+// Display territory on property detail page
+const property = await trpc.properties.getById.query("property_id");
+
+if (property.latitude && property.longitude) {
+  // Find which territory contains this property
+  const allTerritories = await trpc.territories.list.query();
+  
+  for (const territory of allTerritories) {
+    const coverage = await trpc.territories.coverage.query({
+      territoryIds: [territory.id]
+    });
+    // Check if property is included
+  }
+}
+```
+
+### With Maps
+
+```typescript
+// Highlight territory when hovering property
+const handlePropertyHover = async (propertyId: string) => {
+  const coverage = await trpc.territories.coverage.query();
+  
+  // Find territories containing this property
+  const matchingTerritories = coverage.filter(c => {
+    // Custom logic to check property inclusion
+  });
+  
+  setHighlightedTerritories(matchingTerritories.map(t => t.territoryId));
+};
+```
+
+### With Reporting
+
+```typescript
+// Generate territory performance report
+const performance = await trpc.territories.memberPerformance.query();
+
+const report = performance.map(territory => ({
+  territory: territory.territoryName,
+  properties: territory.propertyCount,
+  members: territory.members.length,
+  totalActivities: territory.members.reduce((sum, m) => sum + m.activityCount, 0),
+  totalDeals: territory.members.reduce((sum, m) => sum + m.dealCount, 0),
+  totalValue: territory.members.reduce((sum, m) => sum + m.dealValue, 0)
+}));
+
+exportToCSV(report);
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Properties Not Appearing in Territory">
+    - Verify properties have valid latitude/longitude coordinates
+    - Check that coordinates are in correct order: `[longitude, latitude]`
+    - Ensure boundary polygon is valid (no self-intersections)
+    - Confirm territory boundary is in WGS 84 (SRID 4326)
+  </Accordion>
+  
+  <Accordion title="Coverage Gaps Not Found">
+    - Ensure at least one territory exists
+    - Verify properties have non-null coordinates
+    - Check that PostGIS extension is enabled in database
+    - Review territory boundaries for complete coverage
+  </Accordion>
+  
+  <Accordion title="Assignment Conflicts">
+    - Verify territory exclusivity setting
+    - Check that all userIds are valid workspace members
+    - Ensure admin permissions for assignment operations
+    - Review existing assignments before modifying
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Maps" icon="map" href="/features/maps">
+    Visualize territories and spatial relationships
+  </Card>
+  
+  <Card title="Properties" icon="building" href="/features/properties">
+    Properties automatically fall within territories
+  </Card>
+  
+  <Card title="Activities" icon="calendar" href="/features/activities">
+    Track activities within territory boundaries
+  </Card>
+  
+  <Card title="Deals" icon="handshake" href="/features/deals">
+    Monitor deal performance by territory
+  </Card>
+</CardGroup>

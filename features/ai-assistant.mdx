@@ -1,0 +1,244 @@
+---
+title: AI Assistant
+description: Use AI to analyze your data, answer questions, and generate insights
+icon: sparkles
+---
+
+## Overview
+
+Relio's AI Assistant provides intelligent analytics and conversational insights about your workspace data. Powered by advanced language models, it helps you query data, generate reports, and get answers to complex questions about your contacts, properties, deals, and activities.
+
+<Info>
+  The AI Assistant uses your workspace data to provide contextual answers while maintaining data privacy and security.
+</Info>
+
+## Key Features
+
+### Chat Sessions
+
+Organize your AI interactions into persistent chat sessions that you can return to later.
+
+**Session Management:**
+- Create multiple chat sessions for different topics
+- Automatically generated titles from your first message
+- Rename sessions for better organization
+- Access chat history across sessions
+- Delete sessions when no longer needed
+
+### Natural Language Analytics
+
+Query your data using natural language instead of complex filters or queries.
+
+**Example Questions:**
+- "How many deals did we close this month?"
+- "Show me properties in San Francisco with values over $1M"
+- "What's the average deal value by region?"
+- "List contacts we haven't reached out to in 30 days"
+
+### Data Analysis
+
+The AI Assistant can analyze your workspace data and provide:
+- Aggregated metrics and statistics
+- Trend analysis over time
+- Comparative insights across segments
+- Custom reports based on your queries
+
+## Using the AI Assistant
+
+### Starting a Chat
+
+<Steps>
+  <Step title="Access the Assistant">
+    Navigate to the AI Assistant from your workspace navigation menu
+  </Step>
+  
+  <Step title="Create a Session">
+    Click "New Chat" to start a fresh conversation, or select an existing session from the sidebar
+  </Step>
+  
+  <Step title="Ask Your Question">
+    Type your question in natural language and press Enter or click Send
+  </Step>
+  
+  <Step title="Review Results">
+    The AI will analyze your data and provide a structured response with relevant insights
+  </Step>
+</Steps>
+
+### Best Practices
+
+<AccordionGroup>
+  <Accordion title="Be Specific">
+    Provide clear context in your questions. Instead of "Show me deals", try "Show me closed deals from Q1 2024 over $100K".
+  </Accordion>
+  
+  <Accordion title="Use Follow-up Questions">
+    The AI maintains context within a session, so you can ask follow-up questions like "Now filter those by region" or "What about last quarter?"
+  </Accordion>
+  
+  <Accordion title="Request Different Formats">
+    Ask for data in different ways: "Show this as a chart", "Give me a summary", or "Break this down by month"
+  </Accordion>
+</AccordionGroup>
+
+## API Integration
+
+The AI Assistant is built on a robust API infrastructure:
+
+```typescript
+// Create a new chat session
+const session = await trpc.ai.createSession.mutate({
+  title: "Q1 Deal Analysis",
+  model: "gpt-4.1-mini"
+});
+
+// Save messages to the session
+await trpc.ai.saveMessages.mutate({
+  sessionId: session.id,
+  messages: [
+    {
+      id: "msg_1",
+      role: "user",
+      parts: [{ type: "text", text: "Analyze Q1 deals" }]
+    },
+    {
+      id: "msg_2",
+      role: "assistant",
+      parts: [{ type: "text", text: "Here's your analysis..." }],
+      modelId: "gpt-4.1-mini",
+      promptTokens: 120,
+      completionTokens: 350
+    }
+  ]
+});
+```
+
+<CodeGroup>
+```typescript List Sessions
+const sessions = await trpc.ai.listSessions.query();
+
+sessions.forEach(session => {
+  console.log(session.title, session.messageCount);
+});
+```
+
+```typescript Get Messages
+const messages = await trpc.ai.listMessages.query({
+  sessionId: "session_id"
+});
+```
+
+```typescript Provide Feedback
+await trpc.ai.setMessageFeedback.mutate({
+  sessionId: "session_id",
+  messageId: "msg_id",
+  feedback: "positive"
+});
+```
+</CodeGroup>
+
+## Usage Tracking
+
+### Personal Usage
+
+Track your individual AI usage for the current billing period:
+
+- Total chat sessions created
+- Number of messages sent
+- Token consumption (prompt + completion)
+- Breakdown by AI model
+
+```typescript
+const usage = await trpc.ai.getPersonalUsage.query();
+
+console.log(`Sessions: ${usage.sessions}`);
+console.log(`Messages: ${usage.messages}`);
+console.log(`Total tokens: ${usage.promptTokens + usage.completionTokens}`);
+```
+
+### Workspace Analytics (Admin)
+
+Workspace admins can view organization-wide AI usage:
+
+- Total usage across all team members
+- Per-user breakdown of AI consumption
+- Per-model usage statistics
+- Daily usage time-series data
+
+<Note>
+  AI usage is tracked per billing period and may be subject to quota limits based on your workspace plan.
+</Note>
+
+## Feedback System
+
+Help improve the AI Assistant by providing feedback on responses:
+
+**Positive Feedback:** Mark helpful, accurate responses
+**Negative Feedback:** Flag incorrect or unhelpful responses
+
+Your feedback is stored at `/home/daytona/workspace/source/packages/api/src/routers/ai.ts:445-487` and helps improve future responses.
+
+## Quota & Limits
+
+AI Assistant usage is subject to workspace quotas:
+
+- **Included messages** per billing period based on your plan
+- **Active seat count** determines base quota
+- **Overage charges** may apply beyond quota
+- Usage resets at the start of each billing period
+
+<Warning>
+  When approaching your quota limit, you'll receive notifications. Plan upgrades are available for higher usage needs.
+</Warning>
+
+## Privacy & Security
+
+- All chat sessions are workspace-scoped and private
+- Only you can access your chat history
+- Data is never shared across workspaces
+- AI queries only access data you have permission to view
+- Token usage and metadata are tracked for billing transparency
+
+## Advanced Features
+
+### Analytics Queries
+
+Run structured analytics queries using the analytics endpoint:
+
+```typescript
+const result = await trpc.ai.runAnalyticsQuery.mutate({
+  spec: {
+    dataSource: "deals",
+    metrics: ["count", "sum(value)"],
+    groupBy: ["stage"],
+    filters: {
+      createdAt: { gte: "2024-01-01" }
+    }
+  }
+});
+```
+
+### Daily Usage Tracking
+
+Monitor AI usage trends over time:
+
+```typescript
+const dailyUsage = await trpc.ai.getDailyUsage.query();
+
+// Returns daily breakdown for current billing period
+dailyUsage.forEach(day => {
+  console.log(`${day.day}: ${day.messageCount} messages`);
+});
+```
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api/introduction">
+    Access AI features programmatically
+  </Card>
+  
+  <Card title="Integrations" icon="plug" href="/integrations/overview">
+    Connect external data sources for richer insights
+  </Card>
+</CardGroup>

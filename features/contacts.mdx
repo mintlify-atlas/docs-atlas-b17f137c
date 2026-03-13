@@ -1,0 +1,379 @@
+---
+title: "Contacts"
+description: "Manage your network of people and relationships"
+icon: "user"
+---
+
+## Overview
+
+Contacts are the people in your network - buyers, sellers, agents, investors, and other stakeholders in your real estate business. Relio helps you track relationships, communication history, and automatically calculate connection strength based on your interactions.
+
+## Creating Contacts
+
+<Steps>
+  <Step title="Navigate to Contacts">
+    Click "Contacts" in the main navigation menu
+  </Step>
+  
+  <Step title="Add New Contact">
+    Click the "+ New Contact" button in the top right
+  </Step>
+  
+  <Step title="Enter Basic Information">
+    Fill in the contact's name, email, and phone number
+  </Step>
+  
+  <Step title="Add Details">
+    Optionally add role, stage, title, location, and other information
+  </Step>
+</Steps>
+
+<Tip>
+  Enable auto-enrichment in workspace settings to automatically populate contact details from People Data Labs when you add an email address.
+</Tip>
+
+## Contact Fields
+
+### Basic Information
+
+- **Name**: First and last name (required)
+- **Email**: Multiple email addresses with labels (personal, work, etc.)
+- **Phone**: Multiple phone numbers with labels
+- **Avatar**: Profile photo URL
+- **Title**: Job title or professional designation
+- **Description**: Bio or notes about the contact
+
+### Contact Details
+
+The contacts schema supports rich structured data:
+
+```typescript
+// Email addresses (array)
+[
+  { 
+    address: "john@example.com",
+    label: "work",
+    isPrimary: true,
+    isBad: false
+  }
+]
+
+// Phone numbers (array)
+[
+  { 
+    number: "+1-555-0100",
+    label: "mobile",
+    isPrimary: true,
+    isBad: false
+  }
+]
+
+// Physical addresses (array)
+[
+  {
+    street: "123 Main St",
+    street2: "Suite 100",
+    city: "San Francisco",
+    state: "CA",
+    zip: "94105",
+    label: "office",
+    isPrimary: true
+  }
+]
+```
+
+### Categorization
+
+<CardGroup cols={2}>
+  <Card title="Role" icon="briefcase">
+    Buyer, Seller, Agent, Investor, Property Manager, Contractor, Attorney, Lender, or Other
+  </Card>
+  <Card title="Stage" icon="layer-group">
+    Lead, Prospect, Active, Client, or Archive - track where they are in your pipeline
+  </Card>
+  <Card title="Source" icon="arrow-up-right-from-square">
+    How you met: referral, event, website, social media, cold outreach, or other
+  </Card>
+  <Card title="Connection Strength" icon="signal">
+    Auto-calculated: weak, moderate, strong, or very strong based on interactions
+  </Card>
+</CardGroup>
+
+### Social Profiles
+
+Link to social media and professional profiles:
+
+- LinkedIn
+- Twitter (with follower count)
+- Facebook
+- Instagram
+- AngelList
+
+### Buyer Needs
+
+For buyer contacts, track their property search criteria:
+
+```typescript
+{
+  propertyType: "multi_family",
+  minUnits: 10,
+  maxUnits: 50,
+  minPrice: 1000000,
+  maxPrice: 5000000,
+  minEquity: 20,
+  maxEquity: 40,
+  yearBuiltFrom: 1990,
+  yearBuiltTo: 2020,
+  exchange: true,  // 1031 exchange
+  cap: 6.5         // target cap rate
+}
+```
+
+## Contact Enrichment
+
+### Automatic Enrichment
+
+When auto-enrichment is enabled, Relio automatically:
+
+1. Fetches professional data from People Data Labs
+2. Generates an AI-powered description
+3. Auto-links the contact to their company
+4. Adds social media profiles
+5. Updates location information
+
+The contact detail page shows:
+- When the contact was last enriched: `contacts.lastEnrichedAt`
+- Which fields were populated from enrichment
+
+### Manual Enrichment
+
+You can manually trigger enrichment for any contact:
+
+<Steps>
+  <Step title="Open Contact">
+    Navigate to the contact detail page
+  </Step>
+  
+  <Step title="Click Enrich">
+    Click the "Enrich" button in the top right
+  </Step>
+  
+  <Step title="Review Data">
+    Relio will fetch and display available enrichment data
+  </Step>
+  
+  <Step title="Apply Changes">
+    Click "Apply" to update the contact with enriched information
+  </Step>
+</Steps>
+
+<Note>
+  Manual enrichment requires a People Data Labs API key configured in your workspace settings.
+</Note>
+
+## Connection Score
+
+Relio automatically calculates a connection score (0-100) based on:
+
+- Frequency of activities and interactions
+- Recency of last contact
+- Type of interactions (calls, meetings, emails)
+- Deal involvement
+- Social media engagement
+
+The connection score determines the connection strength:
+
+- **Weak** (0-25): Minimal or no recent interaction
+- **Moderate** (26-50): Occasional contact
+- **Strong** (51-75): Regular engagement
+- **Very Strong** (76-100): Frequent, meaningful interactions
+
+<Tip>
+  Log activities regularly to keep connection scores accurate and identify relationships that need attention.
+</Tip>
+
+## Stale Contacts
+
+Identify contacts who need follow-up:
+
+```typescript
+// Get contacts by inactivity
+const stale = await trpc.contacts.getStaleContacts.query({
+  ownerId: "user_abc",
+  limit: 25
+});
+
+// Returns contacts grouped by inactivity:
+// - 30-60 days since last activity
+// - 60-90 days since last activity  
+// - 90+ days or never contacted
+```
+
+The stale contacts dashboard helps you:
+- Identify who to reach out to
+- Maintain strong relationships
+- Prevent leads from going cold
+
+## Filtering and Search
+
+### Advanced Filters
+
+Filter contacts by:
+
+- Name or email (text search)
+- Role, stage, or source
+- Connection strength
+- Owner (assigned team member)
+- Tags
+- Property ownership (linked properties)
+- List membership
+
+### Saved Views
+
+Create custom views to save filter combinations:
+
+1. Apply your desired filters
+2. Click "Save View"
+3. Name your view (e.g., "Hot Buyer Leads")
+4. Access saved views from the left sidebar
+
+## List Management
+
+Organize contacts into lists:
+
+- **Static Lists**: Manually add/remove contacts
+- **Smart Lists**: Automatically include contacts matching criteria
+- **Shared Lists**: Collaborate with team members
+
+Lists are useful for:
+- Email campaigns
+- Event invitations
+- Market segmentation
+- Territory management
+
+## Company Linking
+
+Contacts are automatically linked to companies when:
+
+1. **Email Domain Match**: Contact's email domain matches a company
+2. **Auto-Creation**: If no company exists, one is created from the domain
+3. **Manual Link**: You can manually link contacts to companies
+
+The workspace dashboard shows:
+- Contact's company affiliation: `contacts.companyId` (via linked_records)
+- Employment history and job title
+- Company relationship type
+
+<Note>
+  Free email domains (Gmail, Yahoo, etc.) are excluded from auto-linking to prevent false associations.
+</Note>
+
+## Bulk Operations
+
+### Import Contacts
+
+Import contacts in bulk from CSV:
+
+```typescript
+await trpc.contacts.bulkCreate.mutate({
+  rows: [
+    { firstName: "John", lastName: "Smith", email: [...] },
+    { firstName: "Jane", lastName: "Doe", email: [...] },
+    // ... more contacts
+  ]
+});
+```
+
+### Export Contacts
+
+Export contacts with filters applied:
+
+```typescript
+const contacts = await trpc.contacts.exportAll.query({
+  role: "buyer",
+  stage: "active",
+  connectionStrength: "strong"
+});
+// Returns up to 5,000 contacts matching filters
+```
+
+## Activities and Timeline
+
+Each contact has a complete activity timeline showing:
+
+- Notes and updates
+- Calls and meetings
+- Email interactions
+- Property tours
+- Deal progress
+- System events (enrichment, updates)
+
+The contact detail page displays activities in reverse chronological order, with filters to show specific types.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Data Quality">
+    - Always include at least an email or phone number
+    - Use the primary flag for the main contact method
+    - Mark bad numbers/emails to avoid wasting time
+    - Keep descriptions concise and professional
+    - Update contact information when it changes
+  </Accordion>
+  
+  <Accordion title="Relationship Management">
+    - Log activities after every interaction
+    - Review stale contacts weekly
+    - Set reminders for follow-ups
+    - Use tags for easy categorization
+    - Track buyer needs for targeted outreach
+  </Accordion>
+  
+  <Accordion title="Team Collaboration">
+    - Assign contacts to owners
+    - Use shared lists for team campaigns
+    - Add notes visible to the whole team
+    - @ mention team members in activities
+    - Set up automated enrichment for consistency
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+Key contact operations:
+
+```typescript
+// List contacts with pagination
+const { items, total } = await trpc.contacts.list.query({
+  limit: 50,
+  offset: 0,
+  search: "john",
+  role: "buyer",
+  sort: { field: "lastName", direction: "asc" }
+});
+
+// Get single contact
+const contact = await trpc.contacts.getById.query("contact_id");
+
+// Create contact
+const newContact = await trpc.contacts.create.mutate({
+  firstName: "John",
+  lastName: "Smith",
+  email: [{ address: "john@example.com", isPrimary: true }],
+  role: "buyer"
+});
+
+// Update contact
+const updated = await trpc.contacts.update.mutate({
+  id: "contact_id",
+  stage: "client"
+});
+
+// Enrich contact
+const enriched = await trpc.contacts.enrich.mutate({
+  id: "contact_id"
+});
+
+// Recalculate connection strength
+await trpc.contacts.recalculateStrength.mutate("contact_id");
+```

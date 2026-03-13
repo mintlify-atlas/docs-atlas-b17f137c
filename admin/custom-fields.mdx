@@ -1,0 +1,475 @@
+---
+title: Custom Fields
+description: Create and manage custom fields for contacts, properties, companies, and deals
+icon: input-text
+---
+
+## Overview
+
+Custom fields allow you to extend Relio's data model with fields specific to your business needs. Admins and owners can create custom fields for contacts, properties, companies, and deals.
+
+<Info>
+Creating, editing, and deleting custom fields requires **admin** or **owner** permissions. All users can view and edit custom field values on records.
+</Info>
+
+## Supported Entity Types
+
+Custom fields can be added to the following entities:
+
+- **Contact**: People in your CRM (buyers, sellers, agents, etc.)
+- **Property**: Real estate listings and properties
+- **Company**: Organizations and businesses
+- **Deal**: Transactions and opportunities
+
+## Field Types
+
+Relio supports 10 different custom field types:
+
+### Text
+Free-form text input for short strings (e.g., nicknames, preferences).
+
+```typescript
+{
+  fieldType: "text",
+  label: "Preferred Name"
+}
+```
+
+### Number
+Numeric values for quantities, ratings, or scores.
+
+```typescript
+{
+  fieldType: "number",
+  label: "Credit Score"
+}
+```
+
+### Date
+Date picker for important dates.
+
+```typescript
+{
+  fieldType: "date",
+  label: "Anniversary Date"
+}
+```
+
+### Boolean
+Yes/no checkbox for binary choices.
+
+```typescript
+{
+  fieldType: "boolean",
+  label: "Pre-approved"
+}
+```
+
+### Select
+Single-choice dropdown from predefined options.
+
+```typescript
+{
+  fieldType: "select",
+  label: "Lead Source",
+  options: ["Referral", "Website", "Cold Call", "Event"]
+}
+```
+
+### Multi-Select
+Multiple-choice selection from predefined options.
+
+```typescript
+{
+  fieldType: "multi_select",
+  label: "Areas of Interest",
+  options: ["Residential", "Commercial", "Industrial", "Land"]
+}
+```
+
+### URL
+Web address with validation and link formatting.
+
+```typescript
+{
+  fieldType: "url",
+  label: "Portfolio Website"
+}
+```
+
+### Email
+Email address with validation.
+
+```typescript
+{
+  fieldType: "email",
+  label: "Secondary Email"
+}
+```
+
+### Phone
+Phone number with formatting.
+
+```typescript
+{
+  fieldType: "phone",
+  label: "Mobile Phone"
+}
+```
+
+### Currency
+Monetary values with currency formatting.
+
+```typescript
+{
+  fieldType: "currency",
+  label: "Annual Revenue"
+}
+```
+
+## Creating Custom Fields
+
+<Steps>
+  <Step title="Navigate to custom fields">
+    From workspace settings, click "Custom Fields" in the admin section.
+  </Step>
+  
+  <Step title="Select entity type">
+    Choose which entity type you want to add a field to (Contact, Property, Company, or Deal).
+  </Step>
+  
+  <Step title="Click 'Add Field'">
+    Click the "Add Custom Field" button.
+  </Step>
+  
+  <Step title="Configure field properties">
+    Fill in the field details:
+    - **Label**: Display name shown in the UI
+    - **Field Type**: Choose from the 10 supported types
+    - **Required**: Whether the field must have a value
+    - **Description**: Optional help text shown to users
+    - **Options**: For select/multi-select fields, define the available choices
+  </Step>
+  
+  <Step title="Save the field">
+    Click "Save" to create the custom field. It will immediately be available on all records of that entity type.
+  </Step>
+</Steps>
+
+### Slug Generation
+
+When you create a custom field, Relio automatically generates a URL-safe slug from the label:
+
+```typescript
+function slugify(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")  // Replace non-alphanumeric with underscore
+    .replace(/^_|_$/g, "")         // Remove leading/trailing underscores
+    .substring(0, 60);             // Limit to 60 characters
+}
+
+// Example:
+// "Preferred Name" -> "preferred_name"
+// "Lead Source (Primary)" -> "lead_source_primary"
+```
+
+<Note>
+Slugs must be unique within a workspace and entity type. If a duplicate slug is detected, you'll need to modify the label.
+</Note>
+
+## Managing Custom Fields
+
+### View Custom Fields
+
+Custom fields are listed by entity type in the admin settings. Each field displays:
+- Label and field type
+- Required status
+- Sort order
+- Creation date
+- Number of records using the field
+
+### Edit Custom Fields
+
+<Steps>
+  <Step title="Locate the field">
+    Find the custom field in the entity type list.
+  </Step>
+  
+  <Step title="Click 'Edit'">
+    Click the edit icon or button.
+  </Step>
+  
+  <Step title="Modify properties">
+    You can update:
+    - Label (slug remains unchanged)
+    - Required status
+    - Description
+    - Options (for select fields)
+    
+    <Warning>
+    You cannot change the field type after creation. To change the type, delete and recreate the field.
+    </Warning>
+  </Step>
+  
+  <Step title="Save changes">
+    Click "Save" to apply the updates.
+  </Step>
+</Steps>
+
+### Reorder Custom Fields
+
+Custom fields are displayed in sort order. To reorder:
+
+1. Click and drag fields to the desired position
+2. The `sortOrder` property is automatically updated
+3. The new order appears immediately on all records
+
+### Delete Custom Fields
+
+<Warning>
+Deleting a custom field is permanent and will remove **all stored values** for that field across all records. This action cannot be undone.
+</Warning>
+
+<Steps>
+  <Step title="Locate the field">
+    Find the custom field you want to delete.
+  </Step>
+  
+  <Step title="Click 'Delete'">
+    Click the delete icon (typically a trash icon).
+  </Step>
+  
+  <Step title="Confirm deletion">
+    Review the warning message and confirm that you want to permanently delete the field and all its values.
+  </Step>
+  
+  <Step title="Field is removed">
+    The field definition and all associated values are permanently deleted from the database.
+  </Step>
+</Steps>
+
+## Data Storage Model
+
+Relio uses an Entity-Attribute-Value (EAV) pattern for custom fields:
+
+### Custom Field Definitions
+
+```typescript
+interface CustomField {
+  id: string;
+  workspaceId: string;
+  entityType: "contact" | "property" | "company" | "deal";
+  label: string;
+  slug: string;           // Auto-generated from label
+  fieldType: string;      // "text" | "number" | "date" | etc.
+  required: boolean;
+  sortOrder: number;
+  options: string[] | null;  // For select/multi-select
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### Custom Field Values
+
+```typescript
+interface CustomFieldValue {
+  id: string;
+  workspaceId: string;
+  fieldId: string;        // FK to custom_fields
+  recordId: string;       // Contact/property/company/deal ID
+  value: string | null;   // Serialized value (JSON for multi-select)
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+<Info>
+All custom field values are stored as text and parsed according to the field's type. Multi-select values are stored as JSON arrays.
+</Info>
+
+## Using Custom Fields
+
+### Set Field Values
+
+All workspace members can set custom field values on records:
+
+```typescript
+// Set a custom field value
+await api.customFields.setValue.mutate({
+  fieldId: "cfld_123...",
+  recordId: "con_456...",  // Contact, property, company, or deal ID
+  value: "Value to store"
+});
+```
+
+### Get Field Values
+
+Retrieve all custom field values for a record:
+
+```typescript
+// Get custom field values for a contact
+const fields = await api.customFields.getValues.query({
+  entityType: "contact",
+  recordId: "con_456..."
+});
+
+// Returns:
+// [
+//   {
+//     field: { id: "...", label: "Preferred Name", fieldType: "text", ... },
+//     valueId: "cfv_789...",
+//     value: "John"
+//   },
+//   ...
+// ]
+```
+
+### List Field Definitions
+
+```typescript
+// Get all custom fields for an entity type
+const contactFields = await api.customFields.list.query({
+  entityType: "contact"
+});
+```
+
+## API Reference
+
+### Create Custom Field
+
+```typescript
+await api.customFields.create.mutate({
+  entityType: "contact",
+  label: "Lead Quality Score",
+  fieldType: "number",
+  required: false,
+  description: "Score from 1-10 based on qualification criteria"
+});
+```
+
+### Update Custom Field
+
+```typescript
+await api.customFields.update.mutate({
+  id: "cfld_123...",
+  label: "Updated Label",
+  required: true,
+  description: "New description"
+});
+```
+
+### Delete Custom Field
+
+```typescript
+await api.customFields.delete.mutate("cfld_123...");
+```
+
+## Best Practices
+
+### Field Design
+
+1. **Use descriptive labels**: Make field names clear and self-explanatory
+2. **Add descriptions**: Include help text to guide users on proper usage
+3. **Choose appropriate types**: Use specific types (currency, phone, email) instead of generic text
+4. **Limit required fields**: Only mark fields as required if truly necessary
+5. **Use select fields**: Prefer dropdowns over free text for consistency
+
+### Organization
+
+1. **Plan before creating**: Map out your custom fields before implementation
+2. **Group related fields**: Use consistent naming for related fields
+3. **Use sort order**: Organize fields logically (e.g., contact info, then preferences)
+4. **Document usage**: Maintain internal documentation on field purposes
+5. **Regular cleanup**: Remove unused fields to keep the UI clean
+
+### Data Quality
+
+1. **Validate inputs**: Use appropriate field types to enforce data format
+2. **Standardize options**: Keep select field options consistent and current
+3. **Train users**: Ensure team understands when and how to use custom fields
+4. **Monitor usage**: Check which fields are being used and which are ignored
+
+### Performance
+
+1. **Don't over-create**: Limit custom fields to what you actually need
+2. **Consider alternatives**: Some data might be better as tags or notes
+3. **Batch updates**: When updating many records, use bulk operations
+
+## Use Cases
+
+### Real Estate Agent Fields
+
+```typescript
+// Contact custom fields
+- "Preferred Communication" (select): Email, Phone, Text, In-Person
+- "Budget Range" (currency): Max property budget
+- "Move Timeline" (date): Target move date
+- "Pre-approved" (boolean): Has mortgage pre-approval
+- "Areas of Interest" (multi-select): Neighborhoods/cities
+
+// Property custom fields
+- "Days on Market" (number): How long listed
+- "HOA Fees" (currency): Monthly HOA cost
+- "Pet Policy" (select): No Pets, Cats Only, Dogs Allowed, All Pets
+- "Parking Spaces" (number): Number of spaces included
+```
+
+### Commercial Real Estate
+
+```typescript
+// Company custom fields
+- "DUNS Number" (text): Business credit identifier
+- "Annual Revenue" (currency): Company's annual revenue
+- "Employee Count" (number): Number of employees
+- "Lease Expiration" (date): Current lease end date
+
+// Deal custom fields
+- "Cap Rate" (number): Property capitalization rate
+- "Commission Split" (select): 50/50, 60/40, 70/30, Custom
+- "Financing Type" (select): Cash, Conventional, SBA, Commercial
+```
+
+## Troubleshooting
+
+### Cannot Create Field
+
+- **Issue**: "Slug already exists"
+- **Solution**: A field with a similar name exists. Modify the label to make it unique.
+
+### Field Not Appearing
+
+- **Issue**: Custom field not showing on records
+- **Solution**: Verify the field was created for the correct entity type. Refresh the page.
+
+### Cannot Delete Field
+
+- **Issue**: Delete button is disabled
+- **Solution**: Ensure you have admin or owner permissions.
+
+### Values Not Saving
+
+- **Issue**: Custom field values don't persist
+- **Solution**: Check field validation. Ensure the value matches the field type (e.g., valid email format).
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Workspace Settings" icon="settings" href="/admin/workspace-settings">
+    Manage workspace-level configurations
+  </Card>
+  
+  <Card title="Pipelines" icon="arrow-progress" href="/admin/pipelines">
+    Configure deal pipelines and stages
+  </Card>
+  
+  <Card title="Workspace Settings" icon="gear" href="/admin/workspace-settings">
+    Configure your workspace settings
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/introduction">
+    Programmatic access via tRPC API
+  </Card>
+</CardGroup>

@@ -1,0 +1,486 @@
+---
+title: Installation
+description: Set up Relio on your local machine or deploy to production
+---
+
+Relio is a modern TypeScript monorepo built with Next.js, Hono, tRPC, and PostgreSQL. This guide will walk you through setting up your development environment and deploying to production.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js**: Version 20 or higher ([Download](https://nodejs.org/))
+- **pnpm**: Version 10.24.0 or higher
+- **PostgreSQL**: Version 14 or higher
+- **Git**: For version control
+
+<Note>
+Relio uses pnpm for package management. If you don't have it installed, run:
+```bash
+npm install -g pnpm@10.24.0
+```
+</Note>
+
+## Quick Start
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/your-org/relio.git
+    cd relio
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    ```bash
+    pnpm install
+    ```
+
+    This will install all dependencies for the monorepo using the workspace configuration defined in `pnpm-workspace.yaml`.
+  </Step>
+
+  <Step title="Set up environment variables">
+    Copy the example environment file and configure your settings:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Edit the `.env` file with your configuration. See [Environment Configuration](#environment-configuration) below for required values.
+  </Step>
+
+  <Step title="Set up the database">
+    Create a PostgreSQL database and apply the schema:
+
+    ```bash
+    # Push schema to database (development)
+    pnpm run db:push
+
+    # Or run migrations (production)
+    pnpm run db:migrate
+    ```
+
+    <Tip>
+    Use `db:push` for rapid development and `db:migrate` for production deployments to maintain a migration history.
+    </Tip>
+  </Step>
+
+  <Step title="Start the development servers">
+    ```bash
+    pnpm run dev
+    ```
+
+    This starts all applications in development mode:
+    - **Web app**: [http://localhost:3001](http://localhost:3001)
+    - **API server**: [http://localhost:3000](http://localhost:3000)
+    - **Mobile app**: Via Expo Go
+  </Step>
+</Steps>
+
+<Note>
+The first startup may take a minute while Next.js compiles. Subsequent starts will be much faster.
+</Note>
+
+## Environment Configuration
+
+Relio uses environment variables for configuration. Here are the required and optional settings:
+
+### Required Variables
+
+<CodeGroup>
+```bash Database
+# PostgreSQL connection strings
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres"
+
+# Note: DATABASE_URL uses port 6543 (pgbouncer) for connection pooling
+#       DIRECT_URL uses port 5432 for direct connections (migrations)
+```
+
+```bash Authentication
+# Better Auth configuration
+BETTER_AUTH_SECRET="your-secret-min-32-chars"  # Generate: openssl rand -base64 32
+BETTER_AUTH_URL="https://api.yourdomain.com"    # Your API URL
+BETTER_AUTH_API_KEY="your-api-key"              # For server-to-server auth
+```
+
+```bash App URLs
+# Application URLs
+APP_URL="https://app.yourdomain.com"
+CORS_ORIGIN="https://app.yourdomain.com"
+NEXT_PUBLIC_SERVER_URL="https://api.yourdomain.com"
+```
+
+```bash Billing (if using Polar.sh)
+POLAR_SERVER="sandbox"  # "sandbox" or "production"
+POLAR_ORGANIZATION_TOKEN="your-token"
+POLAR_WEBHOOK_SECRET="your-webhook-secret"
+POLAR_PRO_MONTHLY_PRODUCT_ID="prod_xxx"
+POLAR_PRO_YEARLY_PRODUCT_ID="prod_yyy"
+```
+</CodeGroup>
+
+### Optional: Real-Time Collaboration
+
+To enable real-time collaboration features (live presence, typing indicators, field locking):
+
+```bash
+# Supabase configuration (optional)
+SUPABASE_URL="https://[PROJECT_REF].supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+NEXT_PUBLIC_SUPABASE_URL="https://[PROJECT_REF].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+```
+
+<Warning>
+Without Supabase configuration, collaboration features will gracefully degrade to no-ops. The app will function normally, but users won't see real-time presence or typing indicators.
+</Warning>
+
+### Optional: Additional Integrations
+
+<CodeGroup>
+```bash Maps & Geolocation
+# For property mapping features
+MAPBOX_ACCESS_TOKEN="pk.xxx"
+NEXT_PUBLIC_MAPBOX_TOKEN="pk.xxx"
+GOOGLE_MAPS_API_KEY="your-key"
+WALKSCORE_API_KEY="your-key"
+```
+
+```bash AI Features
+# For AI-powered insights and chat
+OPENAI_API_KEY="sk-xxx"
+EXA_API_KEY="your-key"
+VALYU_API_KEY="your-key"
+TAKO_API_KEY="your-key"
+```
+
+```bash Email
+# For transactional emails (Resend)
+RESEND_API_KEY="re_xxx"
+EMAIL_FROM="noreply@yourdomain.com"
+```
+
+```bash File Storage
+# Cloudflare R2 for attachments
+R2_ACCOUNT_ID="your-account-id"
+R2_ACCESS_KEY_ID="your-access-key"
+R2_SECRET_ACCESS_KEY="your-secret"
+R2_BUCKET_NAME="relio-attachments"
+R2_PUBLIC_URL="https://files.yourdomain.com"
+```
+
+```bash Data Enrichment
+# People data and web scraping
+PDL_API_KEY="your-pdl-key"              # People Data Labs
+FIRECRAWL_API_KEY="your-firecrawl-key"  # Web scraping
+```
+</CodeGroup>
+
+For a complete list of environment variables, see the [`.env.example`](https://github.com/your-org/relio/blob/main/.env.example) file in the repository.
+
+## Project Structure
+
+Relio is organized as a Turborepo monorepo:
+
+```
+relio-sb/
+├── apps/
+│   ├── web/         # Next.js web application (port 3001)
+│   ├── native/      # React Native mobile app (Expo)
+│   ├── server/      # Hono API server (port 3000)
+│   ├── admin/       # Admin dashboard
+│   └── marketing/   # Marketing website
+├── packages/
+│   ├── api/         # tRPC routers and business logic
+│   ├── auth/        # Better Auth configuration
+│   ├── db/          # Drizzle ORM schema and migrations
+│   ├── ui/          # Shared UI components (shadcn/ui)
+│   ├── config/      # Shared configuration
+│   └── env/         # Environment variable validation
+├── scripts/         # Utility scripts
+├── supabase/        # Supabase configuration
+└── maps/            # Geographic data and map configurations
+```
+
+### Key Technologies
+
+- **Frontend**: Next.js 16 (React 19), TailwindCSS, shadcn/ui
+- **Mobile**: React Native with Expo
+- **Backend**: Hono (lightweight Node.js framework)
+- **API Layer**: tRPC for end-to-end type safety
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Better Auth
+- **Real-time**: Supabase Realtime (optional)
+- **Monorepo**: Turborepo with pnpm workspaces
+
+## Database Setup
+
+### Local Development
+
+For local development, you have two options:
+
+<Tabs>
+  <Tab title="Supabase (Recommended)">
+    1. Create a free Supabase project at [supabase.com](https://supabase.com)
+    2. Get your database connection strings from Project Settings → Database
+    3. Add them to your `.env` file
+    4. Run migrations:
+
+    ```bash
+    pnpm run db:push
+    ```
+  </Tab>
+
+  <Tab title="Local PostgreSQL">
+    1. Install PostgreSQL locally
+    2. Create a database:
+
+    ```bash
+    createdb relio_dev
+    ```
+
+    3. Update your `.env` file:
+
+    ```bash
+    DATABASE_URL="postgresql://localhost:5432/relio_dev"
+    DIRECT_URL="postgresql://localhost:5432/relio_dev"
+    ```
+
+    4. Run migrations:
+
+    ```bash
+    pnpm run db:push
+    ```
+  </Tab>
+</Tabs>
+
+### Database Commands
+
+```bash
+# Push schema changes (development)
+pnpm run db:push
+
+# Generate migrations from schema changes
+pnpm run db:generate
+
+# Run migrations (production)
+pnpm run db:migrate
+
+# Open Drizzle Studio (visual database browser)
+pnpm run db:studio
+```
+
+<Tip>
+**Drizzle Studio** is a web-based database browser that runs on [https://local.drizzle.studio](https://local.drizzle.studio). It's perfect for inspecting your data during development.
+</Tip>
+
+## Development Workflow
+
+### Running Individual Apps
+
+You can run specific applications instead of the entire monorepo:
+
+```bash
+# Web app only
+pnpm run dev:web
+
+# API server only
+pnpm run dev:server
+
+# Mobile app
+pnpm run dev:native
+
+# Marketing site
+pnpm run dev:marketing
+
+# Documentation
+pnpm run dev:docs
+```
+
+### Type Checking
+
+```bash
+# Check types across all packages
+pnpm run check-types
+```
+
+### Building for Production
+
+```bash
+# Build all apps and packages
+pnpm run build
+
+# Build specific app
+turbo build --filter=web
+turbo build --filter=server
+```
+
+## Desktop App (Tauri)
+
+Relio can also run as a native desktop application using Tauri:
+
+```bash
+# Run in development
+cd apps/web
+pnpm run desktop:dev
+
+# Build for production
+cd apps/web
+pnpm run desktop:build
+```
+
+The desktop build will create platform-specific installers in `apps/web/src-tauri/target/release/bundle/`.
+
+## Deployment
+
+### Deploying to Vercel
+
+Relio is optimized for Vercel deployment:
+
+<Steps>
+  <Step title="Connect your repository">
+    Import your Relio repository into Vercel.
+  </Step>
+
+  <Step title="Configure environment variables">
+    In Project Settings → Environment Variables, add all required variables from your `.env` file.
+
+    <Warning>
+    Make sure to set `NODE_VERSION=20` in the Vercel environment variables.
+    </Warning>
+  </Step>
+
+  <Step title="Configure build settings">
+    Vercel should auto-detect the Next.js apps. Configure each app:
+
+    - **Root Directory**: `apps/web` (or `apps/server`)
+    - **Build Command**: `cd ../.. && pnpm run build --filter=web`
+    - **Install Command**: `pnpm install`
+  </Step>
+
+  <Step title="Deploy">
+    Click **Deploy**. Vercel will build and deploy your application.
+  </Step>
+</Steps>
+
+### Deploying the API Server
+
+The Hono API server can be deployed to any Node.js hosting platform:
+
+<CodeGroup>
+```bash Fly.io
+# Install Fly CLI
+curl -L https://fly.io/install.sh | sh
+
+# Create app and deploy
+fly launch
+fly deploy
+```
+
+```bash Railway
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login and deploy
+railway login
+railway up
+```
+
+```bash Docker
+# Build image
+docker build -t relio-server -f apps/server/Dockerfile .
+
+# Run container
+docker run -p 3000:3000 --env-file .env relio-server
+```
+</CodeGroup>
+
+<Note>
+The server requires `NODE_ENV=production` and all required environment variables to be set.
+</Note>
+
+## Troubleshooting
+
+### Port Already in Use
+
+If ports 3000 or 3001 are already in use:
+
+```bash
+# Change web port
+cd apps/web
+NEXT_PUBLIC_SERVER_URL=http://localhost:3000 pnpm run dev -- --port 3002
+
+# Change API port
+cd apps/server
+PORT=3333 pnpm run dev
+```
+
+### Database Connection Issues
+
+<CodeGroup>
+```bash Connection Refused
+# Check PostgreSQL is running
+pg_isready
+
+# Check connection string format
+echo $DATABASE_URL
+
+# Test connection
+psql $DIRECT_URL -c "SELECT version();"
+```
+
+```bash Migration Errors
+# Reset database (development only!)
+pnpm run db:push --force
+
+# Or manually drop and recreate
+dropdb relio_dev
+createdb relio_dev
+pnpm run db:migrate
+```
+</CodeGroup>
+
+### Build Errors
+
+```bash
+# Clear all caches and reinstall
+rm -rf node_modules */node_modules */*/node_modules
+rm -rf .turbo */dist */.next
+pnpm install
+pnpm run build
+```
+
+### Type Errors
+
+If you encounter TypeScript errors after pulling updates:
+
+```bash
+# Regenerate database types
+pnpm run db:generate
+
+# Check types across all packages
+pnpm run check-types
+```
+
+## Next Steps
+
+Now that you have Relio installed and running, check out the [Quickstart Guide](/quickstart) to create your first workspace and add contacts.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Create your first workspace and add contacts
+  </Card>
+  
+  <Card title="Core Features" icon="star" href="/features/workspaces">
+    Explore workspace and CRM features
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/introduction">
+    Explore the tRPC API documentation
+  </Card>
+  
+  <Card title="GitHub Repository" icon="github" href="https://github.com/robertalv/relio">
+    View source code and contribute
+  </Card>
+</CardGroup>

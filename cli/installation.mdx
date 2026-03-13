@@ -1,0 +1,263 @@
+---
+title: Installation
+description: How to install and configure the Relio CLI
+---
+
+The Relio CLI is distributed as an npm package and can be installed globally or locally in your project.
+
+## System Requirements
+
+- **Node.js**: Version 16.x or higher
+- **npm/pnpm/yarn**: Any recent version
+- **Operating Systems**: macOS, Linux, Windows
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="npm">
+    Install globally using npm:
+    
+    ```bash
+    npm install -g relio-cli
+    ```
+    
+    Verify the installation:
+    
+    ```bash
+    relio --help
+    ```
+  </Tab>
+  
+  <Tab title="pnpm">
+    Install globally using pnpm:
+    
+    ```bash
+    pnpm add -g relio-cli
+    ```
+    
+    Verify the installation:
+    
+    ```bash
+    relio --help
+    ```
+  </Tab>
+  
+  <Tab title="yarn">
+    Install globally using Yarn:
+    
+    ```bash
+    yarn global add relio-cli
+    ```
+    
+    Verify the installation:
+    
+    ```bash
+    relio --help
+    ```
+  </Tab>
+  
+  <Tab title="npx">
+    Use without installing (requires Node.js):
+    
+    ```bash
+    npx relio-cli login
+    npx relio-cli whoami
+    ```
+    
+    <Note>
+    Using `npx` will download the package each time unless it's cached.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Verify Installation
+
+After installation, verify that the CLI is available:
+
+```bash
+relio --help
+```
+
+You should see output similar to:
+
+```
+relio - Relio CLI
+
+Usage:
+  relio login [options]
+  relio whoami [options]
+  relio auth test [options]
+  relio logout [options]
+  relio profiles list
+  relio profiles use <name>
+
+Run "relio <command> --help" for command-specific options.
+```
+
+## Version Check
+
+The CLI version is managed through the npm package. To check your installed version:
+
+```bash
+npm list -g relio-cli
+```
+
+## Package Information
+
+The `relio-cli` package includes:
+
+- **Binary command**: `relio` (located at `./bin/relio.js`)
+- **Main export**: Core SDK functionality
+- **Subpath exports**:
+  - `relio-cli/client` - Client SDK
+  - `relio-cli/server` - Server utilities
+  - `relio-cli/core` - Core types and schemas
+
+## Configuration Directory
+
+On first use, the CLI creates a configuration directory:
+
+```
+~/.config/relio/
+```
+
+This directory will contain:
+- `config.json` - Stored profiles and API keys
+
+<Info>
+The configuration directory is created automatically when you run `relio login` for the first time.
+</Info>
+
+## Updating the CLI
+
+To update to the latest version:
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm update -g relio-cli
+    ```
+  </Tab>
+  
+  <Tab title="pnpm">
+    ```bash
+    pnpm update -g relio-cli
+    ```
+  </Tab>
+  
+  <Tab title="yarn">
+    ```bash
+    yarn global upgrade relio-cli
+    ```
+  </Tab>
+</Tabs>
+
+## Uninstalling
+
+To remove the CLI:
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm uninstall -g relio-cli
+    ```
+  </Tab>
+  
+  <Tab title="pnpm">
+    ```bash
+    pnpm remove -g relio-cli
+    ```
+  </Tab>
+  
+  <Tab title="yarn">
+    ```bash
+    yarn global remove relio-cli
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Uninstalling the CLI does not remove your configuration file at `~/.config/relio/config.json`. Remove this manually if needed.
+</Warning>
+
+## Using in Projects
+
+You can also install the CLI as a local project dependency for use in npm scripts:
+
+```bash
+npm install --save-dev relio-cli
+```
+
+Then add scripts to your `package.json`:
+
+```json package.json
+{
+  "scripts": {
+    "relio:login": "relio login",
+    "relio:test": "relio auth test"
+  }
+}
+```
+
+Run with:
+
+```bash
+npm run relio:login
+```
+
+## Troubleshooting
+
+### Command not found
+
+If you get a "command not found" error after installation:
+
+1. **Check your PATH**: Ensure npm's global bin directory is in your PATH
+   ```bash
+   npm config get prefix
+   ```
+
+2. **Verify installation location**:
+   ```bash
+   npm list -g relio-cli
+   ```
+
+3. **Try using npx** as an alternative:
+   ```bash
+   npx relio-cli login
+   ```
+
+### Permission errors (Linux/macOS)
+
+If you encounter permission errors during global installation:
+
+```bash
+sudo npm install -g relio-cli
+```
+
+Or configure npm to use a different directory for global packages:
+
+```bash
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Windows execution policy
+
+On Windows, you may need to adjust PowerShell execution policy:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/cli/authentication">
+    Learn how to authenticate with your Relio workspace
+  </Card>
+  <Card title="CLI Overview" icon="terminal" href="/cli/overview">
+    Explore all available commands
+  </Card>
+</CardGroup>

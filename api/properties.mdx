@@ -1,0 +1,617 @@
+---
+title: 'Properties'
+description: 'Manage property listings and real estate records'
+api: 'POST /trpc/properties.{procedure}'
+---
+
+## Overview
+
+The properties router manages real estate listings, parcel data, and property information.
+
+## Data Structure
+
+<ResponseField name="id" type="string" required>
+  Unique property identifier
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required>
+  Workspace this property belongs to
+</ResponseField>
+
+<ResponseField name="address" type="string" required>
+  Street address
+</ResponseField>
+
+<ResponseField name="city" type="string">
+  City
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  State code (e.g., "CA")
+</ResponseField>
+
+<ResponseField name="zip" type="string">
+  ZIP/postal code
+</ResponseField>
+
+<ResponseField name="country" type="string">
+  Country code (e.g., "US")
+</ResponseField>
+
+<ResponseField name="latitude" type="number">
+  Latitude coordinate
+</ResponseField>
+
+<ResponseField name="longitude" type="number">
+  Longitude coordinate
+</ResponseField>
+
+<ResponseField name="propertyType" type="enum">
+  Type: `residential`, `commercial`, `industrial`, `land`, `mixed_use`, `other`
+</ResponseField>
+
+<ResponseField name="status" type="enum">
+  Status: `for_sale`, `for_lease`, `sold`, `leased`, `off_market`, `pending`
+</ResponseField>
+
+<ResponseField name="listPrice" type="number">
+  List price (USD cents)
+</ResponseField>
+
+<ResponseField name="soldPrice" type="number">
+  Sold price (USD cents)
+</ResponseField>
+
+<ResponseField name="yearBuilt" type="number">
+  Year constructed
+</ResponseField>
+
+<ResponseField name="sqft" type="number">
+  Square footage
+</ResponseField>
+
+<ResponseField name="lotSqft" type="number">
+  Lot size (square feet)
+</ResponseField>
+
+<ResponseField name="bedrooms" type="number">
+  Number of bedrooms
+</ResponseField>
+
+<ResponseField name="bathrooms" type="number">
+  Number of bathrooms (can be decimal, e.g., 2.5)
+</ResponseField>
+
+<ResponseField name="units" type="number">
+  Number of units (for multifamily)
+</ResponseField>
+
+<ResponseField name="equity" type="number">
+  Equity amount
+</ResponseField>
+
+<ResponseField name="capRate" type="number">
+  Capitalization rate (percentage)
+</ResponseField>
+
+<ResponseField name="walkScore" type="number">
+  Walk Score (0-100)
+</ResponseField>
+
+<ResponseField name="transitScore" type="number">
+  Transit Score (0-100)
+</ResponseField>
+
+<ResponseField name="bikeScore" type="number">
+  Bike Score (0-100)
+</ResponseField>
+
+<ResponseField name="apn" type="string">
+  Assessor's Parcel Number
+</ResponseField>
+
+<ResponseField name="countyFips" type="string">
+  County FIPS code
+</ResponseField>
+
+<ResponseField name="zoning" type="string">
+  Zoning classification
+</ResponseField>
+
+<ResponseField name="assessedLandValue" type="number">
+  Assessed land value (cents)
+</ResponseField>
+
+<ResponseField name="assessedTotalValue" type="number">
+  Total assessed value (cents)
+</ResponseField>
+
+<ResponseField name="annualTax" type="number">
+  Annual property tax (cents)
+</ResponseField>
+
+<ResponseField name="images" type="string[]">
+  Array of image URLs
+</ResponseField>
+
+<ResponseField name="llUuid" type="string">
+  Regrid persistent parcel ID
+</ResponseField>
+
+<ResponseField name="lastEnrichedAt" type="datetime">
+  Last enrichment timestamp
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime">
+  Last update timestamp
+</ResponseField>
+
+## List Properties
+
+```typescript properties.list
+const result = await client.properties.list.query({
+  limit: 50,
+  swLat: 37.7,
+  swLng: -122.5,
+  neLat: 37.8,
+  neLng: -122.4,
+  propertyType: 'commercial',
+  status: 'for_sale',
+  minPrice: 100000000, // $1M in cents
+  maxPrice: 500000000, // $5M
+});
+```
+
+<ParamField path="limit" type="number" default="50">
+  Records to return
+</ParamField>
+
+<ParamField path="offset" type="number">
+  Records to skip
+</ParamField>
+
+<ParamField path="ids" type="string[]">
+  Filter by specific IDs
+</ParamField>
+
+<ParamField path="swLat" type="number">
+  Southwest boundary latitude (for map queries)
+</ParamField>
+
+<ParamField path="swLng" type="number">
+  Southwest boundary longitude
+</ParamField>
+
+<ParamField path="neLat" type="number">
+  Northeast boundary latitude
+</ParamField>
+
+<ParamField path="neLng" type="number">
+  Northeast boundary longitude
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search address, city, or MLS ID
+</ParamField>
+
+<ParamField path="propertyType" type="enum">
+  Filter by property type
+</ParamField>
+
+<ParamField path="status" type="enum">
+  Filter by status
+</ParamField>
+
+<ParamField path="city" type="string">
+  Filter by city
+</ParamField>
+
+<ParamField path="state" type="string">
+  Filter by state
+</ParamField>
+
+<ParamField path="zip" type="string">
+  Filter by ZIP code
+</ParamField>
+
+<ParamField path="county" type="string">
+  Filter by county name
+</ParamField>
+
+<ParamField path="minPrice" type="number">
+  Minimum price (cents)
+</ParamField>
+
+<ParamField path="maxPrice" type="number">
+  Maximum price (cents)
+</ParamField>
+
+<ParamField path="minYearBuilt" type="number">
+  Minimum year built
+</ParamField>
+
+<ParamField path="maxYearBuilt" type="number">
+  Maximum year built
+</ParamField>
+
+<ParamField path="minUnits" type="number">
+  Minimum units
+</ParamField>
+
+<ParamField path="maxUnits" type="number">
+  Maximum units
+</ParamField>
+
+<ParamField path="minEquity" type="number">
+  Minimum equity
+</ParamField>
+
+<ParamField path="maxEquity" type="number">
+  Maximum equity
+</ParamField>
+
+<ParamField path="minCapRate" type="number">
+  Minimum cap rate
+</ParamField>
+
+<ParamField path="maxCapRate" type="number">
+  Maximum cap rate
+</ParamField>
+
+<ParamField path="minBedrooms" type="number">
+  Minimum bedrooms
+</ParamField>
+
+<ParamField path="minBathrooms" type="number">
+  Minimum bathrooms
+</ParamField>
+
+<ParamField path="minSqft" type="number">
+  Minimum square footage
+</ParamField>
+
+<ParamField path="exchange1031" type="boolean">
+  Filter by 1031 exchange eligibility
+</ParamField>
+
+<ParamField path="countyUpdates" type="boolean">
+  Filter properties with pending county data updates
+</ParamField>
+
+<ParamField path="listId" type="string">
+  Filter by list membership
+</ParamField>
+
+<ParamField path="tagIds" type="string[]">
+  Filter by tags
+</ParamField>
+
+<ParamField path="sort" type="object">
+  Sort configuration. Fields: `address`, `city`, `listPrice`, `status`, `sqft`, `units`, `equity`, `capRate`, `yearBuilt`, `createdAt`
+</ParamField>
+
+## Get Property by ID
+
+```typescript properties.getById
+const property = await client.properties.getById.query('property_id');
+```
+
+## Create Property
+
+```typescript properties.create
+const property = await client.properties.create.mutate({
+  address: '123 Main St',
+  city: 'San Francisco',
+  state: 'CA',
+  zip: '94102',
+  propertyType: 'residential',
+  status: 'for_sale',
+  listPrice: 150000000, // $1.5M
+  bedrooms: 3,
+  bathrooms: 2,
+  sqft: 2000,
+});
+```
+
+When latitude/longitude are not provided, the property is automatically geocoded using Mapbox.
+
+<ParamField path="address" type="string" required>
+  Street address
+</ParamField>
+
+<ParamField path="city" type="string">
+  City (geocoded if not provided)
+</ParamField>
+
+<ParamField path="state" type="string">
+  State (geocoded if not provided)
+</ParamField>
+
+<ParamField path="zip" type="string">
+  ZIP code (geocoded if not provided)
+</ParamField>
+
+<ParamField path="latitude" type="number">
+  Latitude (geocoded if not provided)
+</ParamField>
+
+<ParamField path="longitude" type="number">
+  Longitude (geocoded if not provided)
+</ParamField>
+
+All other property fields are optional.
+
+## Update Property
+
+```typescript properties.update
+const updated = await client.properties.update.mutate({
+  id: 'property_id',
+  status: 'sold',
+  soldPrice: 155000000,
+});
+```
+
+If the address changes, the property is automatically re-geocoded.
+
+## Delete Property
+
+```typescript properties.delete
+await client.properties.delete.mutate('property_id');
+```
+
+<Warning>
+  Requires admin or owner role.
+</Warning>
+
+## Geocode Property
+
+```typescript properties.geocodeProperty
+const geocoded = await client.properties.geocodeProperty.mutate('property_id');
+```
+
+Manually geocode a property using Mapbox. Updates latitude, longitude, and may backfill city/state/zip.
+
+<Note>
+  Requires MAPBOX_ACCESS_TOKEN configuration.
+</Note>
+
+## Enrich Property
+
+```typescript properties.enrich
+const result = await client.properties.enrich.mutate({
+  id: 'property_id',
+});
+```
+
+Enriches property data from multiple sources:
+1. **Geocoding** (Mapbox) - If coordinates missing
+2. **Walk Score API** - Walkability, transit, and bike scores
+3. **Regrid** - Parcel data and property details
+4. **Smarty** - Structural, mortgage, and market data
+
+<ResponseField name="property" type="object">
+  Updated property object
+</ResponseField>
+
+<ResponseField name="enriched" type="object">
+  <Expandable title="Enrichment details">
+    <ResponseField name="geocoded" type="boolean">
+      Whether geocoding was performed
+    </ResponseField>
+    <ResponseField name="walkScore" type="number">
+      Walk Score (0-100)
+    </ResponseField>
+    <ResponseField name="transitScore" type="number">
+      Transit Score (0-100)
+    </ResponseField>
+    <ResponseField name="bikeScore" type="number">
+      Bike Score (0-100)
+    </ResponseField>
+    <ResponseField name="walkScoreAvailable" type="boolean">
+      Whether Walk Score data was fetched
+    </ResponseField>
+    <ResponseField name="regrid" type="object">
+      Regrid enrichment details
+    </ResponseField>
+    <ResponseField name="smarty" type="object">
+      Smarty enrichment details
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Note>
+  This is a heavy operation. Requires API keys for enrichment sources.
+</Note>
+
+## Capture Street View
+
+```typescript properties.captureStreetView
+const result = await client.properties.captureStreetView.mutate({
+  id: 'property_id',
+});
+```
+
+Captures a Google Street View image and adds it to the property's images array.
+
+<ResponseField name="imageUrl" type="string">
+  URL of the captured image
+</ResponseField>
+
+<ResponseField name="property" type="object">
+  Updated property object
+</ResponseField>
+
+<Note>
+  Requires GOOGLE_MAPS_API_KEY and property coordinates.
+</Note>
+
+## Unit Mixes
+
+Manage unit mix configurations for multifamily properties.
+
+### List Unit Mixes
+
+```typescript properties.listUnitMixes
+const mixes = await client.properties.listUnitMixes.query({
+  propertyId: 'property_id',
+});
+```
+
+### Create Unit Mix
+
+```typescript properties.createUnitMix
+const mix = await client.properties.createUnitMix.mutate({
+  propertyId: 'property_id',
+  data: {
+    name: '2BR/2BA',
+    units: 10,
+    minSquareFootage: 900,
+    maxSquareFootage: 1100,
+    minRent: 250000, // $2,500/mo in cents
+    maxRent: 300000,
+  },
+});
+```
+
+### Update Unit Mix
+
+```typescript properties.updateUnitMix
+const updated = await client.properties.updateUnitMix.mutate({
+  id: 'mix_id',
+  data: {
+    minRent: 275000,
+    maxRent: 325000,
+  },
+});
+```
+
+### Delete Unit Mix
+
+```typescript properties.deleteUnitMix
+await client.properties.deleteUnitMix.mutate({ id: 'mix_id' });
+```
+
+## Sale History
+
+Track property sale transactions.
+
+### List Sale History
+
+```typescript properties.listSaleHistory
+const history = await client.properties.listSaleHistory.query({
+  propertyId: 'property_id',
+});
+```
+
+### Create Sale Record
+
+```typescript properties.createSaleHistory
+const sale = await client.properties.createSaleHistory.mutate({
+  propertyId: 'property_id',
+  data: {
+    saleDate: new Date('2024-01-15'),
+    salePrice: 200000000, // $2M
+    buyerId: 'contact_id',
+    sellerId: 'contact_id',
+    transactionType: 'sale',
+    capRate: 5.5,
+  },
+});
+```
+
+### Update Sale Record
+
+```typescript properties.updateSaleHistory
+const updated = await client.properties.updateSaleHistory.mutate({
+  id: 'sale_id',
+  data: {
+    salePrice: 205000000,
+  },
+});
+```
+
+### Delete Sale Record
+
+```typescript properties.deleteSaleHistory
+await client.properties.deleteSaleHistory.mutate({ id: 'sale_id' });
+```
+
+## Find by Parcel
+
+```typescript properties.findByParcel
+const match = await client.properties.findByParcel.query({
+  llUuid: 'regrid_uuid',
+  apn: '123-456-789',
+  countyFips: '06075',
+  latitude: 37.7749,
+  longitude: -122.4194,
+});
+```
+
+Finds a property using multiple matching strategies:
+1. Regrid UUID (most reliable)
+2. APN + County FIPS
+3. Coordinate proximity (~50m)
+
+<ResponseField name="id" type="string">
+  Matched property ID
+</ResponseField>
+
+<ResponseField name="address" type="string">
+  Property address
+</ResponseField>
+
+Returns `null` if no match found.
+
+## Bulk Create
+
+```typescript properties.bulkCreate
+const result = await client.properties.bulkCreate.mutate({
+  rows: [
+    { address: '123 Main St', city: 'San Francisco', state: 'CA' },
+    { address: '456 Oak Ave', city: 'Oakland', state: 'CA' },
+  ],
+});
+```
+
+<Warning>
+  Skips geocoding to avoid API rate limits. Heavy operation.
+</Warning>
+
+## Export Properties
+
+```typescript properties.exportAll
+const properties = await client.properties.exportAll.query({
+  propertyType: 'commercial',
+  city: 'San Francisco',
+  minPrice: 100000000,
+});
+```
+
+Exports up to 5,000 properties. Heavy operation.
+
+## Aggregations
+
+```typescript properties.aggregations
+const stats = await client.properties.aggregations.query({
+  propertyType: 'residential',
+  aggregations: [
+    { type: 'count' },
+    { type: 'avg', column: 'listPrice' },
+    { type: 'group', column: 'city' },
+    { type: 'sum', column: 'sqft' },
+  ],
+});
+```
+
+Supported columns:
+- `listPrice`, `soldPrice`, `estimatedValue`, `bedrooms`, `bathrooms`, `units`
+- `sqft`, `lotSqft`, `yearBuilt`, `equity`, `capRate`
+- `assessedLandValue`, `assessedTotalValue`, `annualTax`
+- `walkScore`, `transitScore`, `bikeScore`
+- `address`, `city`, `state`, `propertyType`, `status`, `createdAt`
+- `tags` (junction table)

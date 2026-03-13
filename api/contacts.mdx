@@ -1,0 +1,491 @@
+---
+title: 'Contacts'
+description: 'Manage contact records in your CRM'
+api: 'POST /trpc/contacts.{procedure}'
+---
+
+## Overview
+
+The contacts router manages individual people in your CRM, including their contact information, relationships, and activity history.
+
+## Data Structure
+
+<ResponseField name="id" type="string" required>
+  Unique contact identifier (CUID2)
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required>
+  Workspace this contact belongs to
+</ResponseField>
+
+<ResponseField name="firstName" type="string">
+  Contact's first name
+</ResponseField>
+
+<ResponseField name="lastName" type="string">
+  Contact's last name
+</ResponseField>
+
+<ResponseField name="email" type="array">
+  Array of email addresses (structured format)
+  <Expandable title="Email object structure">
+    <ResponseField name="address" type="string" required>
+      Email address
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Label like "work", "personal", "enriched"
+    </ResponseField>
+    <ResponseField name="isPrimary" type="boolean">
+      Whether this is the primary email
+    </ResponseField>
+    <ResponseField name="isBad" type="boolean">
+      Whether this email bounced or is invalid
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="phone" type="array">
+  Array of phone numbers (structured format)
+  <Expandable title="Phone object structure">
+    <ResponseField name="number" type="string" required>
+      Phone number
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Label like "work", "mobile", "home"
+    </ResponseField>
+    <ResponseField name="isPrimary" type="boolean">
+      Whether this is the primary phone
+    </ResponseField>
+    <ResponseField name="isBad" type="boolean">
+      Whether this number is disconnected
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Job title
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Contact biography or notes
+</ResponseField>
+
+<ResponseField name="primaryLocation" type="string">
+  Primary address or city
+</ResponseField>
+
+<ResponseField name="avatarUrl" type="string">
+  Profile picture URL
+</ResponseField>
+
+<ResponseField name="role" type="enum">
+  Contact role: `lead`, `client`, `partner`, `vendor`, `other`
+</ResponseField>
+
+<ResponseField name="stage" type="enum">
+  Lead stage: `new`, `contacted`, `qualified`, `proposal`, `negotiation`, `closed_won`, `closed_lost`
+</ResponseField>
+
+<ResponseField name="source" type="enum">
+  Lead source: `website`, `referral`, `social_media`, `event`, `cold_outreach`, `other`
+</ResponseField>
+
+<ResponseField name="connectionStrength" type="enum">
+  Relationship strength: `strong`, `medium`, `weak`, calculated from activity
+</ResponseField>
+
+<ResponseField name="connectionScore" type="number">
+  Numeric connection score (0-100)
+</ResponseField>
+
+<ResponseField name="lastActivity" type="datetime">
+  Timestamp of most recent activity
+</ResponseField>
+
+<ResponseField name="ownerId" type="string">
+  User ID of the contact owner
+</ResponseField>
+
+<ResponseField name="linkedIn" type="string">
+  LinkedIn profile URL
+</ResponseField>
+
+<ResponseField name="twitter" type="string">
+  Twitter/X handle
+</ResponseField>
+
+<ResponseField name="facebook" type="string">
+  Facebook profile URL
+</ResponseField>
+
+<ResponseField name="lastEnrichedAt" type="datetime">
+  When contact was last enriched
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Record creation timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime">
+  Last update timestamp
+</ResponseField>
+
+## List Contacts
+
+```typescript contacts.list
+const result = await client.contacts.list.query({
+  limit: 50,
+  offset: 0,
+  search: 'john',
+  role: 'client',
+  stage: 'qualified',
+  sort: { field: 'createdAt', direction: 'desc' },
+});
+```
+
+<ParamField path="limit" type="number" default="50">
+  Number of records to return (max 100)
+</ParamField>
+
+<ParamField path="offset" type="number" default="0">
+  Number of records to skip for pagination
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Legacy cursor-based pagination ID
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search by first name or last name
+</ParamField>
+
+<ParamField path="firstName" type="string">
+  Filter by first name (partial match)
+</ParamField>
+
+<ParamField path="lastName" type="string">
+  Filter by last name (partial match)
+</ParamField>
+
+<ParamField path="title" type="string">
+  Filter by job title (partial match)
+</ParamField>
+
+<ParamField path="role" type="enum">
+  Filter by role: `lead`, `client`, `partner`, `vendor`, `other`
+</ParamField>
+
+<ParamField path="stage" type="enum">
+  Filter by stage: `new`, `contacted`, `qualified`, `proposal`, `negotiation`, `closed_won`, `closed_lost`
+</ParamField>
+
+<ParamField path="source" type="enum">
+  Filter by source
+</ParamField>
+
+<ParamField path="connectionStrength" type="enum">
+  Filter by connection strength
+</ParamField>
+
+<ParamField path="ownerId" type="string">
+  Filter by owner user ID
+</ParamField>
+
+<ParamField path="ownerPropertyIds" type="string[]">
+  Filter contacts linked to properties as owners
+</ParamField>
+
+<ParamField path="listId" type="string">
+  Filter by list membership
+</ParamField>
+
+<ParamField path="tagIds" type="string[]">
+  Filter by tags (contacts must have ALL specified tags)
+</ParamField>
+
+<ParamField path="sort" type="object">
+  Sort configuration
+  <Expandable title="Sort object">
+    <ParamField path="field" type="enum" default="createdAt">
+      Sort field: `firstName`, `lastName`, `role`, `stage`, `source`, `connectionStrength`, `createdAt`
+    </ParamField>
+    <ParamField path="direction" type="enum" default="desc">
+      Sort direction: `asc`, `desc`
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="items" type="array" required>
+  Array of contact objects
+</ResponseField>
+
+<ResponseField name="total" type="number" required>
+  Total count matching filters
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string">
+  Cursor for next page (legacy pagination)
+</ResponseField>
+
+## Get Contact by ID
+
+```typescript contacts.getById
+const contact = await client.contacts.getById.query('contact_id');
+```
+
+<ParamField path="id" type="string" required>
+  Contact ID (CUID2)
+</ParamField>
+
+Returns a single contact object or throws `NOT_FOUND`.
+
+## Create Contact
+
+```typescript contacts.create
+const contact = await client.contacts.create.mutate({
+  firstName: 'John',
+  lastName: 'Doe',
+  email: [
+    { address: 'john@example.com', isPrimary: true },
+  ],
+  phone: [
+    { number: '+1234567890', label: 'mobile' },
+  ],
+  title: 'CEO',
+  role: 'client',
+});
+```
+
+<ParamField path="firstName" type="string">
+  First name
+</ParamField>
+
+<ParamField path="lastName" type="string">
+  Last name
+</ParamField>
+
+<ParamField path="email" type="array">
+  Email addresses (structured format)
+</ParamField>
+
+<ParamField path="phone" type="array">
+  Phone numbers (structured format)
+</ParamField>
+
+<ParamField path="title" type="string">
+  Job title
+</ParamField>
+
+<ParamField path="description" type="string">
+  Biography or notes
+</ParamField>
+
+<ParamField path="role" type="enum">
+  Contact role
+</ParamField>
+
+<ParamField path="stage" type="enum">
+  Lead stage
+</ParamField>
+
+<ParamField path="source" type="enum">
+  Lead source
+</ParamField>
+
+<ParamField path="ownerId" type="string">
+  Owner user ID
+</ParamField>
+
+### Auto-Enrichment
+
+When `autoEnrichContacts` is enabled in workspace settings and a PDL API key is configured, new contacts with email addresses are automatically enriched in the background.
+
+## Update Contact
+
+```typescript contacts.update
+const updated = await client.contacts.update.mutate({
+  id: 'contact_id',
+  title: 'VP of Sales',
+  stage: 'qualified',
+});
+```
+
+<ParamField path="id" type="string" required>
+  Contact ID to update
+</ParamField>
+
+All contact fields are optional. Only provided fields are updated.
+
+## Delete Contact
+
+```typescript contacts.delete
+await client.contacts.delete.mutate('contact_id');
+```
+
+<Warning>
+  Requires admin or owner role. Deletes the contact and all related activities.
+</Warning>
+
+## Bulk Create Contacts
+
+```typescript contacts.bulkCreate
+const result = await client.contacts.bulkCreate.mutate({
+  rows: [
+    { firstName: 'Alice', email: [{ address: 'alice@example.com' }] },
+    { firstName: 'Bob', email: [{ address: 'bob@example.com' }] },
+  ],
+});
+```
+
+<ParamField path="rows" type="array" required>
+  Array of contact objects to create
+</ParamField>
+
+<ResponseField name="count" type="number">
+  Number of contacts created
+</ResponseField>
+
+<Note>
+  This is a heavy operation consuming rate limit from the heavy bucket.
+</Note>
+
+## Export Contacts
+
+```typescript contacts.exportAll
+const contacts = await client.contacts.exportAll.query({
+  role: 'client',
+  tagIds: ['tag1', 'tag2'],
+});
+```
+
+Exports up to 5,000 contacts matching filters. Accepts same filters as `list` (except pagination).
+
+<Warning>
+  This is a heavy operation. Use pagination for regular queries.
+</Warning>
+
+## Enrich Contact
+
+```typescript contacts.enrich
+const result = await client.contacts.enrich.mutate({
+  id: 'contact_id',
+});
+```
+
+Enriches contact data from People Data Labs using the contact's email address. Falls back to Exa web search if PDL returns no results.
+
+<ResponseField name="contact" type="object" required>
+  Updated contact object
+</ResponseField>
+
+<ResponseField name="enrichedFields" type="string[]" required>
+  List of fields that were populated
+</ResponseField>
+
+<ResponseField name="source" type="enum">
+  Data source: `pdl` or `exa`
+</ResponseField>
+
+<ResponseField name="exaResults" type="array">
+  Web search results from Exa (when PDL fails)
+</ResponseField>
+
+<Note>
+  Requires PDL_API_KEY configuration. This is a heavy operation.
+</Note>
+
+## Connection Score
+
+### Recalculate Strength
+
+```typescript contacts.recalculateStrength
+const contact = await client.contacts.recalculateStrength.mutate('contact_id');
+```
+
+Recalculates connection score and strength based on recent activity.
+
+### Recalculate All
+
+```typescript contacts.recalculateAllStrengths
+const result = await client.contacts.recalculateAllStrengths.mutate();
+```
+
+Recalculates connection scores for all contacts in the workspace.
+
+<Warning>
+  Admin only. Use sparingly as this processes all contacts.
+</Warning>
+
+## Stale Contacts
+
+```typescript contacts.getStaleContacts
+const stale = await client.contacts.getStaleContacts.query({
+  ownerId: 'user_id',
+  limit: 25,
+});
+```
+
+Returns contacts grouped by inactivity:
+- **30 days**: No activity in 30-60 days
+- **60 days**: No activity in 60-90 days  
+- **90 days**: No activity in 90+ days or never
+
+<ParamField path="ownerId" type="string">
+  Filter by owner
+</ParamField>
+
+<ParamField path="limit" type="number" default="25">
+  Max contacts per bucket (1-100)
+</ParamField>
+
+<ResponseField name="buckets" type="object">
+  <Expandable title="Bucket structure">
+    <ResponseField name="30" type="array">
+      Contacts inactive 30-60 days
+    </ResponseField>
+    <ResponseField name="60" type="array">
+      Contacts inactive 60-90 days
+    </ResponseField>
+    <ResponseField name="90" type="array">
+      Contacts inactive 90+ days
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="counts" type="object">
+  Count per bucket and total
+</ResponseField>
+
+## Aggregations
+
+```typescript contacts.aggregations
+const stats = await client.contacts.aggregations.query({
+  role: 'client',
+  aggregations: [
+    { type: 'count' },
+    { type: 'group', column: 'stage' },
+    { type: 'group', column: 'tags' },
+  ],
+});
+```
+
+Perform analytics on contacts matching filters.
+
+<ParamField path="aggregations" type="array" required>
+  Array of aggregation operations
+  <Expandable title="Aggregation types">
+    <ParamField path="type" type="enum" required>
+      `count`, `avg`, `sum`, `min`, `max`, `group`
+    </ParamField>
+    <ParamField path="column" type="string">
+      Column to aggregate (required for all except `count`)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+Supported columns:
+- `firstName`, `lastName`, `role`, `stage`, `source`, `connectionStrength`
+- `twitterFollowerCount`, `createdAt`
+- `tags` (junction table aggregation)
+
+Returns aggregation results keyed by aggregation index.

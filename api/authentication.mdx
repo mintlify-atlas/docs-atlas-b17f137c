@@ -1,0 +1,230 @@
+---
+title: 'Authentication'
+description: 'Authenticate your API requests to Relio'
+---
+
+## Overview
+
+Relio's API supports two authentication methods:
+
+1. **Session cookies** - For web applications
+2. **API tokens** - For programmatic access
+
+## API Tokens
+
+API tokens provide programmatic access to your workspace with fine-grained permissions.
+
+### Creating an API Token
+
+API tokens are managed through the Relio dashboard:
+
+1. Navigate to Settings > API Tokens
+2. Click "Create API Token"
+3. Configure token permissions
+4. Copy the token (shown only once)
+
+### Using API Tokens
+
+Include your API token in the `Authorization` header:
+
+```bash
+curl https://api.reliocrm.com/trpc/contacts.list \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"input":{"limit":10}}'
+```
+
+With the tRPC client:
+
+```typescript
+const client = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: 'https://api.reliocrm.com/trpc',
+      headers: {
+        authorization: 'Bearer YOUR_API_TOKEN',
+      },
+    }),
+  ],
+});
+```
+
+## Token Permissions
+
+API tokens use scope-based permissions with two access levels:
+
+- **read** - View-only access
+- **read_write** - Full access (create, update, delete)
+
+### Available Scopes
+
+<ParamField path="records" type="read | read_write">
+  Access to contacts, properties, companies, and deals
+</ParamField>
+
+<ParamField path="relationships" type="read | read_write">
+  Manage relationships between records
+</ParamField>
+
+<ParamField path="activities" type="read | read_write">
+  Track and manage activities
+</ParamField>
+
+<ParamField path="tasks" type="read | read_write">
+  Workspace task management
+</ParamField>
+
+<ParamField path="listEntries" type="read | read_write">
+  Add/remove items from lists (queries use this scope)
+</ParamField>
+
+<ParamField path="listConfiguration" type="read_write">
+  Create, update, or delete lists (mutations use this scope)
+</ParamField>
+
+<ParamField path="files" type="read | read_write">
+  File uploads and attachments
+</ParamField>
+
+<ParamField path="tags" type="read | read_write">
+  Tagging and categorization
+</ParamField>
+
+<ParamField path="objectConfiguration" type="read | read_write">
+  Custom fields, views, email templates, and object appearance
+</ParamField>
+
+<ParamField path="communications" type="read | read_write">
+  Email and communication features
+</ParamField>
+
+<ParamField path="notifications" type="read | read_write">
+  Notification management
+</ParamField>
+
+<ParamField path="apiKeys" type="read | read_write">
+  Manage workspace API tokens
+</ParamField>
+
+<ParamField path="webhooks" type="read | read_write">
+  Configure workspace webhooks
+</ParamField>
+
+<ParamField path="preferences" type="read | read_write">
+  Workspace preferences and settings
+</ParamField>
+
+<ParamField path="userManagement" type="read">
+  View workspace roles and members
+</ParamField>
+
+### Permission Mapping
+
+Router endpoints automatically map to scopes:
+
+```typescript
+// Requires "records" scope with appropriate level
+api.contacts.list.query()     // read
+api.contacts.create.mutate()  // read_write
+
+// Requires "activities" scope
+api.activities.list.query()   // read
+api.activities.create.mutate() // read_write
+
+// Lists have special handling
+api.lists.getItems.query()    // listEntries:read
+api.lists.create.mutate()     // listConfiguration:read_write
+```
+
+## Session Authentication
+
+For web applications, Relio uses Better Auth session cookies:
+
+```typescript
+// Sign in with email/password
+const { data, error } = await authClient.signIn.email({
+  email: 'user@example.com',
+  password: 'password',
+});
+
+// Session cookie is automatically set
+const contacts = await client.contacts.list.query();
+```
+
+### Session Context
+
+Authenticated requests include:
+
+- `ctx.session.user` - Current user information
+- `ctx.session.session` - Session metadata
+- `ctx.session.session.activeOrganizationId` - Active workspace ID
+
+## Workspace Selection
+
+Most API endpoints require an active workspace. Set via:
+
+**Session users:**
+```typescript
+await authClient.organization.setActive({
+  organizationId: 'workspace_id',
+});
+```
+
+**API tokens:**
+API tokens are scoped to a specific workspace automatically.
+
+## Error Responses
+
+### UNAUTHORIZED
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required",
+    "data": { "cause": "No session" }
+  }
+}
+```
+
+### FORBIDDEN
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "API token lacks read_write permission for records."
+  }
+}
+```
+
+### PRECONDITION_FAILED
+
+```json
+{
+  "error": {
+    "code": "PRECONDITION_FAILED",
+    "message": "No active workspace selected. Please select or create a workspace."
+  }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Rotate tokens regularly">
+    Create new tokens and revoke old ones periodically to maintain security.
+  </Accordion>
+
+  <Accordion title="Use minimal permissions">
+    Grant only the scopes required for your integration. Use `read` when possible.
+  </Accordion>
+
+  <Accordion title="Store tokens securely">
+    Never commit API tokens to version control. Use environment variables or secret managers.
+  </Accordion>
+
+  <Accordion title="Monitor token usage">
+    Track which tokens are being used and revoke unused tokens.
+  </Accordion>
+</AccordionGroup>

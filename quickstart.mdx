@@ -1,80 +1,261 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get up and running with Relio in 5 minutes
 ---
 
-## Get started in three steps
+<Note>
+This guide assumes you've already completed the [installation](/installation) steps. If you haven't set up Relio yet, start there first.
+</Note>
 
-Get your documentation site running locally and make your first customization.
+Welcome to Relio! This guide will walk you through creating your first workspace and adding your first contact in just a few minutes.
 
-### Step 1: Set up your local environment
+## Sign Up and Create Your Workspace
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+<Steps>
+  <Step title="Create your account">
+    Navigate to your Relio instance and sign up with your email address. After verifying your email, you'll be taken to the onboarding flow.
+  </Step>
 
-### Step 2: Deploy your changes
+  <Step title="Set up your workspace">
+    Create your first workspace by providing a name and slug. The workspace is your organization's central hub where you'll manage all your contacts, deals, and properties.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```typescript
+    // Behind the scenes, Relio creates an organization
+    const { data: org } = await authClient.organization.create({
+      name: "Acme Real Estate",
+      slug: "acme-real-estate"
+    });
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    <Tip>
+    Choose a memorable slug - it will be part of your workspace URL: `https://your-domain.com/acme-real-estate`
+    </Tip>
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Invite your team (optional)">
+    You can invite team members right away or skip this step and do it later from workspace settings.
+  </Step>
 
-### Step 3: Go live
+  <Step title="Choose your plan">
+    Select between the Free plan or start a Pro trial. You can change your plan anytime from the billing settings.
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    - **Free**: Up to 1,000 contacts, basic features
+    - **Pro**: Unlimited contacts, AI features, advanced integrations
+  </Step>
+</Steps>
 
-## Next steps
+## Add Your First Contact
 
-Now that you have your docs running, explore these key features:
+Now let's add your first contact to your workspace.
+
+<Steps>
+  <Step title="Navigate to Contacts">
+    From your workspace dashboard, click on **Contacts** in the sidebar or navigate to `/{your-workspace-slug}/contacts`.
+  </Step>
+
+  <Step title="Click 'Add Contact'">
+    Click the **Add Contact** button in the top right corner of the contacts table.
+  </Step>
+
+  <Step title="Fill in contact details">
+    Enter the contact's information. Only first and last name are required, but you can add much more:
+
+    ```typescript
+    // Example contact creation via API
+    const contact = await trpc.contacts.create.mutate({
+      firstName: "John",
+      lastName: "Smith",
+      email: [
+        { 
+          address: "john.smith@example.com", 
+          isPrimary: true 
+        }
+      ],
+      phone: [
+        { 
+          number: "+1-555-0123", 
+          label: "mobile", 
+          isPrimary: true 
+        }
+      ],
+      role: "buyer",
+      stage: "lead",
+      connectionStrength: "strong"
+    });
+    ```
+
+    **Available contact fields:**
+
+    <CodeGroup>
+    ```typescript Basic Info
+    {
+      firstName: string;        // Required
+      lastName: string;         // Required
+      title?: string;           // Job title
+      avatarUrl?: string;
+      description?: string;     // Notes about the contact
+    }
+    ```
+
+    ```typescript Contact Details
+    {
+      email?: Array<{
+        address: string;
+        label?: string;
+        isPrimary?: boolean;
+        isBad?: boolean;
+      }>;
+      phone?: Array<{
+        number: string;
+        label?: string;
+        isPrimary?: boolean;
+        isBad?: boolean;
+      }>;
+      address?: Array<{
+        street: string;
+        street2?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+        label?: string;
+        isPrimary?: boolean;
+      }>;
+    }
+    ```
+
+    ```typescript Relationship Fields
+    {
+      role: "buyer" | "seller" | "investor" | "agent" | "lender" | "other";
+      stage: "lead" | "prospect" | "client" | "past_client";
+      source?: "referral" | "website" | "social" | "event" | "import" | "other";
+      connectionStrength: "weak" | "moderate" | "strong";
+      ownerId?: string;  // Assign to team member
+    }
+    ```
+
+    ```typescript Social & Location
+    {
+      linkedIn?: string;
+      instagram?: string;
+      facebook?: string;
+      twitter?: string;
+      angelList?: string;
+      primaryLocation?: string;
+      latitude?: number;
+      longitude?: number;
+    }
+    ```
+
+    ```typescript Buyer Needs
+    {
+      buyerNeeds?: {
+        propertyType?: "residential" | "commercial" | "land" | "industrial" | "multi_family";
+        minUnits?: number;
+        maxUnits?: number;
+        minPrice?: number;    // In dollars
+        maxPrice?: number;
+        minEquity?: number;   // Percent
+        maxEquity?: number;   // Percent
+        yearBuiltFrom?: number;
+        yearBuiltTo?: number;
+        exchange?: boolean;   // 1031 exchange preference
+        cap?: number;         // Cap rate percent
+      };
+    }
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Save and view your contact">
+    Click **Save** to create the contact. You'll be taken to the contact detail page where you can:
+
+    - Add notes and activities
+    - Schedule calls and meetings
+    - Link related contacts, companies, and properties
+    - Upload attachments
+    - Track interaction history
+  </Step>
+</Steps>
+
+## Next Steps
+
+Congratulations! You've created your workspace and added your first contact. Here's what to explore next:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Manage Contacts" icon="users" href="/features/contacts">
+    Learn more about contact management features
+  </Card>
+  
+  <Card title="Create Deal Pipelines" icon="pipe" href="/features/deals">
+    Set up custom pipelines to track your deals from lead to close
+  </Card>
+  
+  <Card title="Add Properties" icon="building" href="/features/properties">
+    Add properties to your database and link them to contacts
+  </Card>
+  
+  <Card title="Set Up Integrations" icon="plug" href="/integrations/overview">
+    Connect email, calendar, and other tools to sync data automatically
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Working with the API
+
+Relio is built on a type-safe tRPC API. Here's how to interact with contacts programmatically:
+
+```typescript
+import { trpc } from "@/utils/trpc";
+
+// List all contacts in your workspace
+const contacts = await trpc.contacts.list.query({
+  limit: 50,
+  offset: 0,
+  filters: {
+    role: "buyer",
+    stage: "lead"
+  }
+});
+
+// Get a specific contact
+const contact = await trpc.contacts.getById.query({
+  id: "contact_id_here"
+});
+
+// Update a contact
+const updated = await trpc.contacts.update.mutate({
+  id: "contact_id_here",
+  stage: "prospect",
+  connectionStrength: "strong"
+});
+
+// Delete a contact
+await trpc.contacts.delete.mutate({
+  id: "contact_id_here"
+});
+```
+
+<Warning>
+All API operations are scoped to your current workspace. Make sure you have the correct workspace selected in your session.
+</Warning>
+
+## Real-Time Collaboration
+
+Relio includes built-in real-time collaboration features powered by Supabase Realtime:
+
+- **Live presence**: See who else is online in your workspace
+- **Field locking**: When someone edits a field, it's locked for others
+- **Typing indicators**: See when team members are composing notes
+- **Activity updates**: New notes and activities appear instantly
+
+<Tip>
+To enable real-time features, make sure you've configured the optional Supabase environment variables. See the [installation guide](/installation#optional-real-time-collaboration) for details.
+</Tip>
+
+## Getting Help
+
+If you run into any issues:
+
+- Review the [API documentation](/api/introduction)
+- Search existing [GitHub issues](https://github.com/robertalv/relio/issues)
+
+Ready to dive deeper? Explore the [core features](/features/workspaces) to learn about advanced capabilities like custom fields, AI-powered insights, and mapping tools.

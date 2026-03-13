@@ -1,0 +1,433 @@
+---
+title: 'Activities'
+description: 'Track interactions and activities'
+api: 'POST /trpc/activities.{procedure}'
+---
+
+## Overview
+
+The activities router tracks all interactions with contacts, properties, companies, and deals, including notes, calls, emails, meetings, and system events.
+
+## Data Structure
+
+<ResponseField name="id" type="string" required>
+  Unique activity identifier
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required>
+  Workspace this activity belongs to
+</ResponseField>
+
+<ResponseField name="type" type="enum" required>
+  Activity type: `note`, `call`, `email`, `meeting`, `task`, `system`
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Activity title or subject
+</ResponseField>
+
+<ResponseField name="body" type="string">
+  Rich HTML content (supports mentions)
+</ResponseField>
+
+<ResponseField name="userId" type="string" required>
+  User who created the activity
+</ResponseField>
+
+<ResponseField name="contactId" type="string">
+  Linked contact ID
+</ResponseField>
+
+<ResponseField name="propertyId" type="string">
+  Linked property ID
+</ResponseField>
+
+<ResponseField name="companyId" type="string">
+  Linked company ID
+</ResponseField>
+
+<ResponseField name="dealId" type="string">
+  Linked deal ID
+</ResponseField>
+
+<ResponseField name="metadata" type="object">
+  Additional structured data (e.g., email headers, meeting duration)
+</ResponseField>
+
+<ResponseField name="dueAt" type="datetime">
+  Due date for tasks
+</ResponseField>
+
+<ResponseField name="completedAt" type="datetime">
+  When activity was completed
+</ResponseField>
+
+<ResponseField name="resolved" type="boolean">
+  Whether activity is resolved
+</ResponseField>
+
+<ResponseField name="resolvedById" type="string">
+  User who resolved the activity
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="reactions" type="array">
+  Emoji reactions grouped by emoji
+  <Expandable title="Reaction structure">
+    <ResponseField name="emoji" type="string">
+      Emoji character
+    </ResponseField>
+    <ResponseField name="count" type="number">
+      Number of users who reacted
+    </ResponseField>
+    <ResponseField name="users" type="array">
+      Users who reacted
+    </ResponseField>
+    <ResponseField name="hasReacted" type="boolean">
+      Whether current user reacted
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="replies" type="array">
+  Activity replies/comments
+  <Expandable title="Reply structure">
+    <ResponseField name="id" type="string">
+      Reply ID
+    </ResponseField>
+    <ResponseField name="userId" type="string">
+      Reply author ID
+    </ResponseField>
+    <ResponseField name="body" type="string">
+      Reply content (rich HTML)
+    </ResponseField>
+    <ResponseField name="createdAt" type="datetime">
+      Reply timestamp
+    </ResponseField>
+    <ResponseField name="user" type="object">
+      Author info (name, image)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## List Activities
+
+```typescript activities.list
+const result = await client.activities.list.query({
+  limit: 50,
+  contactId: 'contact_id',
+  type: 'note',
+});
+```
+
+<ParamField path="limit" type="number" default="50">
+  Records to return
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Cursor for pagination
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Filter by linked contact
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Filter by linked property
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Filter by linked company
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Filter by linked deal
+</ParamField>
+
+<ParamField path="type" type="enum">
+  Filter by activity type
+</ParamField>
+
+<ResponseField name="items" type="array">
+  Array of activities with reactions and replies
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string">
+  Cursor for next page
+</ResponseField>
+
+## Create Activity
+
+```typescript activities.create
+const activity = await client.activities.create.mutate({
+  type: 'note',
+  title: 'Follow-up call',
+  body: '<p>Discussed next steps with <span class="mention" data-type="user" data-id="user123">@John Doe</span></p>',
+  contactId: 'contact_id',
+  dueAt: new Date('2024-03-20'),
+});
+```
+
+<ParamField path="type" type="enum" required>
+  Activity type: `note`, `call`, `email`, `meeting`, `task`, `system`
+</ParamField>
+
+<ParamField path="title" type="string" required>
+  Activity title
+</ParamField>
+
+<ParamField path="body" type="string">
+  Rich HTML content (supports @mentions)
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Linked contact
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Linked property
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Linked company
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Linked deal
+</ParamField>
+
+<ParamField path="metadata" type="object">
+  Additional structured data
+</ParamField>
+
+<ParamField path="dueAt" type="datetime">
+  Due date for tasks
+</ParamField>
+
+### Mentions & Notifications
+
+When creating activities with @mentions in the body:
+- Mentioned users receive notifications
+- Mentions are extracted from HTML `<span class="mention" data-type="user" data-id="...">` tags
+- Only workspace members can be mentioned
+
+### Contact Activity Tracking
+
+When an activity is linked to a contact:
+- Contact's `lastActivity` timestamp is updated
+- Contact's connection score is recalculated
+
+## Update Activity
+
+```typescript activities.update
+const updated = await client.activities.update.mutate({
+  id: 'activity_id',
+  body: '<p>Updated notes</p>',
+  resolved: true,
+});
+```
+
+<ParamField path="id" type="string" required>
+  Activity ID
+</ParamField>
+
+<ParamField path="body" type="string">
+  Update content (only creator can edit)
+</ParamField>
+
+<ParamField path="resolved" type="boolean">
+  Mark as resolved/unresolved (any user can resolve)
+</ParamField>
+
+<Note>
+  Only the activity creator can edit the body. Anyone can resolve/unresolve.
+</Note>
+
+## Complete Activity
+
+```typescript activities.complete
+const completed = await client.activities.complete.mutate({
+  id: 'activity_id',
+});
+```
+
+Sets `completedAt` to current timestamp.
+
+## Delete Activity
+
+```typescript activities.delete
+await client.activities.delete.mutate({ id: 'activity_id' });
+```
+
+<Note>
+  Only the activity owner or workspace admins can delete activities.
+</Note>
+
+## Replies
+
+### Create Reply
+
+```typescript activities.createReply
+const reply = await client.activities.createReply.mutate({
+  activityId: 'activity_id',
+  body: '<p>Great point! Let me follow up.</p>',
+});
+```
+
+<ParamField path="activityId" type="string" required>
+  Activity ID to reply to
+</ParamField>
+
+<ParamField path="body" type="string" required>
+  Reply content (rich HTML, supports mentions)
+</ParamField>
+
+### Reply Notifications
+
+When creating a reply:
+- Mentioned users receive mention notifications
+- Activity owner receives a notification (if not mentioned)
+- Link includes `?highlightReply={replyId}` for deep linking
+
+## Reactions
+
+### Toggle Reaction
+
+```typescript activities.toggleReaction
+const result = await client.activities.toggleReaction.mutate({
+  activityId: 'activity_id',
+  emoji: '👍',
+});
+```
+
+<ParamField path="activityId" type="string" required>
+  Activity ID
+</ParamField>
+
+<ParamField path="emoji" type="string" required>
+  Emoji character to react with
+</ParamField>
+
+<ResponseField name="action" type="enum">
+  Result: `added` or `removed`
+</ResponseField>
+
+If reaction exists, it's removed. Otherwise, it's added.
+
+### Reaction Notifications
+
+When adding a reaction, the activity owner receives a notification (unless they're reacting to their own activity).
+
+## Activity Feed
+
+```typescript activities.feed
+const result = await client.activities.feed.query({
+  limit: 50,
+  type: 'note',
+});
+```
+
+Returns workspace-wide activity feed with joined user and record context.
+
+<ParamField path="limit" type="number" default="50">
+  Records to return
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Pagination cursor
+</ParamField>
+
+<ParamField path="type" type="enum">
+  Filter by activity type
+</ParamField>
+
+<ResponseField name="items" type="array">
+  Activities with joined data:
+  - `userName`, `userEmail` - Activity author
+  - `contactFirstName`, `contactLastName` - Linked contact
+  - `propertyAddress` - Linked property
+  - `companyName` - Linked company
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string">
+  Cursor for next page
+</ResponseField>
+
+## Activity Types
+
+<Accordion title="note">
+  General notes and observations. Most flexible type for recording information.
+</Accordion>
+
+<Accordion title="call">
+  Phone calls or video meetings. Can include duration in metadata.
+</Accordion>
+
+<Accordion title="email">
+  Email correspondence. Email headers and thread info stored in metadata.
+</Accordion>
+
+<Accordion title="meeting">
+  In-person or virtual meetings. Can include attendees and agenda in metadata.
+</Accordion>
+
+<Accordion title="task">
+  Action items with due dates. Use `dueAt` field for scheduling.
+</Accordion>
+
+<Accordion title="system">
+  System-generated events (e.g., record created, field updated). Created automatically by record activity logging.
+</Accordion>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Link activities to records">
+    Always link activities to relevant contacts, properties, companies, or deals to maintain relationship context.
+    
+    ```typescript
+    await client.activities.create.mutate({
+      type: 'call',
+      title: 'Discovery call',
+      contactId: 'contact_id',
+      propertyId: 'property_id', // Multi-link supported
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Use mentions for collaboration">
+    Mention team members to notify them and keep everyone informed:
+    
+    ```typescript
+    body: '<p><span class="mention" data-type="user" data-id="user123">@Alice</span> can you follow up on this?</p>'
+    ```
+  </Accordion>
+
+  <Accordion title="Set due dates for tasks">
+    Use the `dueAt` field with `type: 'task'` for actionable items:
+    
+    ```typescript
+    await client.activities.create.mutate({
+      type: 'task',
+      title: 'Send proposal',
+      dueAt: new Date('2024-03-25'),
+      contactId: 'contact_id',
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Use metadata for structured data">
+    Store additional context in the metadata field:
+    
+    ```typescript
+    metadata: {
+      duration: 1800, // 30 minutes
+      outcome: 'scheduled_demo',
+      nextSteps: ['send_proposal', 'book_demo'],
+    }
+    ```
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,510 @@
+---
+title: 'Lists'
+description: 'Organize records into collections'
+api: 'POST /trpc/lists.{procedure}'
+---
+
+## Overview
+
+The lists router manages collections of contacts, properties, companies, or deals with support for pipeline stages and permissions.
+
+## Data Structure
+
+<ResponseField name="id" type="string" required>
+  Unique list identifier
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required>
+  Workspace this list belongs to
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  List name
+</ResponseField>
+
+<ResponseField name="emoji" type="string">
+  Optional emoji icon
+</ResponseField>
+
+<ResponseField name="color" type="string">
+  Hex color code for UI
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  List description
+</ResponseField>
+
+<ResponseField name="objectType" type="enum" required>
+  Record type: `contact`, `property`, `company`, `deal`
+</ResponseField>
+
+<ResponseField name="type" type="enum">
+  List type: `static`, `smart`
+</ResponseField>
+
+<ResponseField name="filterConfig" type="object">
+  Filter configuration for smart lists
+</ResponseField>
+
+<ResponseField name="isPipeline" type="boolean">
+  Whether this is a pipeline with stages
+</ResponseField>
+
+<ResponseField name="stages" type="array">
+  Pipeline stages configuration
+</ResponseField>
+
+<ResponseField name="visibility" type="enum">
+  Visibility: `workspace`, `private`, `shared`
+</ResponseField>
+
+<ResponseField name="workspaceAccessLevel" type="enum">
+  Workspace access level: `view`, `full_access`
+</ResponseField>
+
+<ResponseField name="ownerId" type="string" required>
+  List owner user ID
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+## List All Lists
+
+```typescript lists.list
+const lists = await client.lists.list.query();
+```
+
+Returns all lists the current user has access to, with item counts.
+
+<ResponseField name="lists" type="array">
+  Array of list objects with:
+  - `itemCount` - Number of items in the list
+  - `ownerName`, `ownerImage` - Owner information
+</ResponseField>
+
+### Visibility Filtering
+
+**Admins/Owners** see all workspace lists.
+
+**Members** see:
+- Workspace-visible lists (`visibility: 'workspace'`)
+- Lists they own
+- Lists explicitly shared with them
+
+## Get List by ID
+
+```typescript lists.getById
+const list = await client.lists.getById.query('list_id');
+```
+
+## Get Lists for Record
+
+```typescript lists.getListsForRecord
+const lists = await client.lists.getListsForRecord.query({
+  recordId: 'contact_id',
+  objectType: 'contact',
+});
+```
+
+Returns all lists containing a specific record.
+
+<ParamField path="recordId" type="string" required>
+  Record ID
+</ParamField>
+
+<ParamField path="objectType" type="enum" required>
+  Record type: `contact`, `property`, `company`
+</ParamField>
+
+## Create List
+
+```typescript lists.create
+const list = await client.lists.create.mutate({
+  name: 'Hot Leads',
+  emoji: '🔥',
+  color: '#EF4444',
+  objectType: 'contact',
+  type: 'static',
+  visibility: 'workspace',
+  workspaceAccessLevel: 'view',
+});
+```
+
+<ParamField path="name" type="string" required>
+  List name
+</ParamField>
+
+<ParamField path="objectType" type="enum" required>
+  Record type: `contact`, `property`, `company`, `deal`
+</ParamField>
+
+<ParamField path="emoji" type="string">
+  Emoji icon
+</ParamField>
+
+<ParamField path="color" type="string">
+  Hex color code
+</ParamField>
+
+<ParamField path="description" type="string">
+  List description
+</ParamField>
+
+<ParamField path="type" type="enum" default="static">
+  List type: `static`, `smart`
+</ParamField>
+
+<ParamField path="filterConfig" type="object">
+  Filter configuration for smart lists
+</ParamField>
+
+<ParamField path="isPipeline" type="boolean" default="false">
+  Enable pipeline stages
+</ParamField>
+
+<ParamField path="stages" type="array">
+  Pipeline stages configuration
+</ParamField>
+
+<ParamField path="visibility" type="enum" default="workspace">
+  Visibility: `workspace`, `private`, `shared`
+</ParamField>
+
+<ParamField path="workspaceAccessLevel" type="enum" default="view">
+  Default workspace access: `view`, `full_access`
+</ParamField>
+
+<Note>
+  Requires `listConfiguration:read_write` permission for API tokens.
+</Note>
+
+## Update List
+
+```typescript lists.update
+const updated = await client.lists.update.mutate({
+  id: 'list_id',
+  name: 'Qualified Leads',
+  color: '#10B981',
+});
+```
+
+<ParamField path="id" type="string" required>
+  List ID
+</ParamField>
+
+All list fields are optional.
+
+## Delete List
+
+```typescript lists.delete
+await client.lists.delete.mutate('list_id');
+```
+
+<Warning>
+  Requires admin or owner role. Deletes the list and all its items.
+</Warning>
+
+## List Items
+
+### Get Items
+
+```typescript lists.getItems
+const result = await client.lists.getItems.query({
+  listId: 'list_id',
+  stageId: 'stage_id', // Optional: for pipeline lists
+});
+```
+
+<ParamField path="listId" type="string" required>
+  List ID
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  Filter by pipeline stage (for pipeline lists)
+</ParamField>
+
+<ResponseField name="list" type="object">
+  List configuration
+</ResponseField>
+
+<ResponseField name="items" type="array">
+  Array of list items with embedded record data:
+  - `contact` - Full contact object (if contact list)
+  - `property` - Full property object (if property list)
+  - `company` - Full company object (if company list)
+  - `deal` - Full deal object (if deal list)
+</ResponseField>
+
+### Add Item
+
+```typescript lists.addItem
+const item = await client.lists.addItem.mutate({
+  listId: 'list_id',
+  contactId: 'contact_id',
+  stageId: 'stage_id', // Optional: for pipeline lists
+  order: 0,
+});
+```
+
+<ParamField path="listId" type="string" required>
+  List ID
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Contact ID (for contact lists)
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Property ID (for property lists)
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Company ID (for company lists)
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Deal ID (for deal lists)
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  Pipeline stage ID (for pipeline lists)
+</ParamField>
+
+<ParamField path="order" type="number" default="0">
+  Display order within stage/list
+</ParamField>
+
+<Note>
+  You must provide the ID matching the list's `objectType`. For example, a contact list requires `contactId`.
+</Note>
+
+### Bulk Add Items
+
+```typescript lists.bulkAddItems
+const result = await client.lists.bulkAddItems.mutate({
+  listId: 'list_id',
+  entityIds: ['contact1', 'contact2', 'contact3'],
+});
+```
+
+<ParamField path="listId" type="string" required>
+  List ID
+</ParamField>
+
+<ParamField path="entityIds" type="string[]" required>
+  Array of record IDs to add
+</ParamField>
+
+<ResponseField name="inserted" type="number">
+  Number of items added
+</ResponseField>
+
+<Note>
+  Processes up to 500 items per request. This is a heavy operation.
+</Note>
+
+### Move Item
+
+```typescript lists.moveItem
+const updated = await client.lists.moveItem.mutate({
+  id: 'item_id',
+  stageId: 'new_stage_id',
+  order: 2,
+});
+```
+
+<ParamField path="id" type="string" required>
+  List item ID
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  New stage ID (for pipeline lists)
+</ParamField>
+
+<ParamField path="order" type="number">
+  New position
+</ParamField>
+
+When moving between stages, `stageEnteredAt` is automatically updated.
+
+### Remove Item
+
+```typescript lists.removeItem
+await client.lists.removeItem.mutate({ id: 'item_id' });
+```
+
+<ParamField path="id" type="string" required>
+  List item ID
+</ParamField>
+
+### Bulk Remove Items
+
+```typescript lists.bulkRemoveItems
+const result = await client.lists.bulkRemoveItems.mutate({
+  listId: 'list_id',
+  entityIds: ['contact1', 'contact2'],
+});
+```
+
+<ParamField path="listId" type="string" required>
+  List ID
+</ParamField>
+
+<ParamField path="entityIds" type="string[]" required>
+  Record IDs to remove from list
+</ParamField>
+
+<ResponseField name="removed" type="number">
+  Number of items removed
+</ResponseField>
+
+## Permissions & Sharing
+
+### Get Shares
+
+```typescript lists.getShares
+const shares = await client.lists.getShares.query({
+  listId: 'list_id',
+});
+```
+
+<ResponseField name="visibility" type="enum">
+  List visibility
+</ResponseField>
+
+<ResponseField name="workspaceAccessLevel" type="enum">
+  Default workspace access
+</ResponseField>
+
+<ResponseField name="ownerId" type="string">
+  List owner ID
+</ResponseField>
+
+<ResponseField name="shares" type="array">
+  Individual user shares with access levels
+</ResponseField>
+
+### Update Shares
+
+```typescript lists.updateShares
+await client.lists.updateShares.mutate({
+  listId: 'list_id',
+  workspaceAccessLevel: 'view',
+  shares: [
+    { userId: 'user1', accessLevel: 'full_access' },
+    { userId: 'user2', accessLevel: 'view' },
+  ],
+});
+```
+
+<ParamField path="listId" type="string" required>
+  List ID
+</ParamField>
+
+<ParamField path="workspaceAccessLevel" type="enum">
+  Default workspace access: `view`, `full_access`
+</ParamField>
+
+<ParamField path="shares" type="array">
+  Individual user shares (replaces all existing shares)
+  <Expandable title="Share object">
+    <ParamField path="userId" type="string" required>
+      User ID
+    </ParamField>
+    <ParamField path="accessLevel" type="enum" required>
+      Access level: `view`, `full_access`, `no_access`
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Note>
+  Only the list owner or workspace admins can manage permissions.
+</Note>
+
+### Get Workspace Members
+
+```typescript lists.getWorkspaceMembers
+const members = await client.lists.getWorkspaceMembers.query();
+```
+
+Returns workspace members for the permissions picker.
+
+## Access Levels
+
+<Accordion title="view">
+  View-only access:
+  - See list and its items
+  - Cannot add, remove, or reorder items
+  - Cannot modify list settings
+</Accordion>
+
+<Accordion title="full_access">
+  Full access:
+  - View list and items
+  - Add and remove items
+  - Reorder items
+  - Update list settings
+  - Cannot delete list (owner/admin only)
+  - Cannot change permissions (owner/admin only)
+</Accordion>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use meaningful names and emojis">
+    Help users quickly identify lists:
+    
+    ```typescript
+    {
+      name: 'High-Value Opportunities',
+      emoji: '💎',
+      color: '#8B5CF6',
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Set appropriate visibility">
+    - `workspace` - For shared sales pipeline, lead routing
+    - `private` - For personal task lists, notes
+    - `shared` - For team-specific lists with granular access
+  </Accordion>
+
+  <Accordion title="Use pipelines for workflows">
+    Enable `isPipeline` and configure stages for visual workflows:
+    
+    ```typescript
+    {
+      name: 'Sales Pipeline',
+      isPipeline: true,
+      stages: [
+        { name: 'Lead', color: '#6366F1' },
+        { name: 'Qualified', color: '#3B82F6' },
+        { name: 'Proposal', color: '#F59E0B' },
+        { name: 'Closed', color: '#22C55E' },
+      ],
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Bulk operations for performance">
+    Use `bulkAddItems` instead of individual `addItem` calls:
+    
+    ```typescript
+    // Good
+    await client.lists.bulkAddItems.mutate({
+      listId: 'list_id',
+      entityIds: contacts.map(c => c.id),
+    });
+    
+    // Avoid
+    for (const contact of contacts) {
+      await client.lists.addItem.mutate({
+        listId: 'list_id',
+        contactId: contact.id,
+      });
+    }
+    ```
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,204 @@
+---
+title: "Workspaces"
+description: "Organize your teams and data with Relio workspaces"
+icon: "building"
+---
+
+## Overview
+
+Workspaces are the foundation of Relio's organization structure. Each workspace is a self-contained environment where teams can collaborate on contacts, properties, companies, deals, and activities. Think of a workspace as your own private CRM instance with its own data, users, and settings.
+
+<Note>
+  Each Relio account can belong to multiple workspaces, and you can switch between them seamlessly.
+</Note>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Team Collaboration" icon="users">
+    Invite team members with role-based permissions (Owner, Admin, Member)
+  </Card>
+  <Card title="Data Isolation" icon="shield">
+    Complete data separation between workspaces for security and organization
+  </Card>
+  <Card title="Custom Settings" icon="gear">
+    Configure workspace-level preferences, integrations, and branding
+  </Card>
+  <Card title="Activity Tracking" icon="chart-line">
+    Monitor team activity and collaboration across all records
+  </Card>
+</CardGroup>
+
+## Creating a Workspace
+
+<Steps>
+  <Step title="Navigate to Workspace Menu">
+    Click the workspace selector in the top navigation bar
+  </Step>
+  
+  <Step title="Create New Workspace">
+    Select "Create New Workspace" from the dropdown menu
+  </Step>
+  
+  <Step title="Configure Settings">
+    Enter your workspace name and configure initial settings
+  </Step>
+  
+  <Step title="Invite Team Members">
+    Add team members by email and assign their roles
+  </Step>
+</Steps>
+
+## Workspace Roles
+
+### Owner
+
+The workspace owner has full control over the workspace, including:
+
+- Deleting the entire workspace
+- Managing billing and subscriptions
+- Changing workspace settings
+- Managing all users and permissions
+- Full access to all data
+
+<Warning>
+  Only the workspace owner can permanently delete a workspace. This action cannot be undone.
+</Warning>
+
+### Admin
+
+Admins have elevated permissions to manage the workspace:
+
+- Invite and remove users
+- Manage workspace settings
+- Configure integrations
+- Access all records and data
+- Manage custom fields and views
+
+### Member
+
+Regular members can:
+
+- Create and manage their own records
+- View records shared with them
+- Collaborate on activities and tasks
+- Use workspace integrations
+
+## Workspace Settings
+
+### General Settings
+
+Configure your workspace identity:
+
+- **Workspace Name**: The display name for your organization
+- **Logo**: Upload a custom logo for branding
+- **Time Zone**: Set the default time zone for the workspace
+- **Date Format**: Choose your preferred date format
+
+### Metadata Configuration
+
+Workspaces support custom metadata for advanced automation:
+
+```typescript
+{
+  autoEnrichContacts: true,  // Automatically enrich new contacts with PDL data
+  defaultPipeline: "sales",  // Default deal pipeline for new deals
+  customSettings: {}         // Additional custom configuration
+}
+```
+
+### Data Management
+
+The workspace dashboard shows:
+- Total contacts, properties, companies, and deals
+- Recent activity across the team
+- Storage usage and limits
+- Active integrations status
+
+## Switching Between Workspaces
+
+You can be a member of multiple workspaces and switch between them:
+
+1. Click the workspace selector in the navigation bar
+2. Select the workspace you want to switch to
+3. Your view will update to show that workspace's data
+
+<Tip>
+  Use keyboard shortcut `Cmd/Ctrl + K` to quickly search and switch workspaces
+</Tip>
+
+## Workspace Deletion
+
+<Warning>
+  Workspace deletion is permanent and cannot be undone. All data, including contacts, properties, companies, deals, and activities, will be permanently deleted.
+</Warning>
+
+Only workspace owners can delete a workspace:
+
+<Steps>
+  <Step title="Navigate to Settings">
+    Go to Workspace Settings > Danger Zone
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Type the exact workspace name to confirm
+  </Step>
+  
+  <Step title="Delete Workspace">
+    Click "Permanently Delete Workspace" to complete the action
+  </Step>
+</Steps>
+
+### What Gets Deleted
+
+When you delete a workspace, the following data is permanently removed:
+
+- All contacts, properties, and companies
+- All deals and pipelines
+- All activities, tasks, and notes
+- All files and attachments
+- All custom fields and views
+- All integrations and API keys
+- All team member associations
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Organizing Multiple Workspaces">
+    Create separate workspaces for:
+    - Different business units or departments
+    - Separate client projects
+    - Testing vs. production environments
+    - Different geographic regions
+  </Accordion>
+  
+  <Accordion title="Team Management">
+    - Assign the minimum necessary role to each team member
+    - Regularly review and update user permissions
+    - Use Admin role for team leads who need to manage settings
+    - Keep ownership with a single responsible party
+  </Accordion>
+  
+  <Accordion title="Data Security">
+    - Enable two-factor authentication for all users
+    - Regularly audit workspace access
+    - Use workspace-specific API keys for integrations
+    - Review activity logs for suspicious behavior
+  </Accordion>
+</AccordionGroup>
+
+## API Access
+
+Developers can interact with workspace data programmatically:
+
+```typescript
+// Get workspace information
+const workspace = await trpc.workspace.get.query();
+
+// All other API calls are scoped to the active workspace
+const contacts = await trpc.contacts.list.query({ limit: 50 });
+```
+
+<Note>
+  All API endpoints automatically scope to your active workspace. You don't need to pass the workspace ID in each request.
+</Note>

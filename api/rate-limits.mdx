@@ -1,0 +1,297 @@
+---
+title: 'Rate Limits'
+description: 'Understanding Relio API rate limiting'
+---
+
+## Overview
+
+Relio enforces workspace-level rate limits to ensure fair usage and system stability. Limits are applied per workspace and vary by billing plan tier.
+
+## Rate Limit Tiers
+
+### Free Plan
+
+<ParamField path="general" type="number" default="180">
+  180 requests per minute across all endpoints
+</ParamField>
+
+<ParamField path="mutation" type="number" default="30">
+  30 write operations per minute (creates, updates, deletes)
+</ParamField>
+
+<ParamField path="heavy" type="number" default="10">
+  10 heavy operations per minute (bulk operations, enrichment, exports)
+</ParamField>
+
+### Pro Plan
+
+<ParamField path="general" type="number" default="600">
+  600 requests per minute across all endpoints
+</ParamField>
+
+<ParamField path="mutation" type="number" default="150">
+  150 write operations per minute (creates, updates, deletes)
+</ParamField>
+
+<ParamField path="heavy" type="number" default="60">
+  60 heavy operations per minute (bulk operations, enrichment, exports)
+</ParamField>
+
+## Rate Limit Buckets
+
+Requests consume capacity from multiple buckets:
+
+### General Bucket
+
+All requests consume 1 unit from the general bucket.
+
+### Mutation Bucket
+
+Write operations (mutations) consume 1 unit from both:
+- General bucket
+- Mutation bucket
+
+Examples:
+- `contacts.create`
+- `properties.update`
+- `deals.delete`
+- `lists.addItem`
+
+### Heavy Bucket
+
+Resource-intensive operations consume 1 unit from all three buckets:
+- General bucket
+- Mutation bucket (if applicable)
+- Heavy bucket
+
+Operations classified as heavy:
+
+<Accordion title="AI Operations">
+  - `ai.*` - All AI-powered endpoints
+  - `contacts.enrich` - Contact enrichment via People Data Labs
+  - `companies.enrich` - Company enrichment via Firecrawl
+  - `properties.enrich` - Property enrichment (geocoding, Walk Score, Regrid, Smarty)
+</Accordion>
+
+<Accordion title="Bulk Operations">
+  - `*.bulkCreate` - Batch record creation
+  - `lists.bulkAddItems` - Bulk list operations
+  - `lists.bulkRemoveItems` - Bulk list removal
+</Accordion>
+
+<Accordion title="Exports">
+  - `*.exportAll` - Full data exports (up to 5,000 records)
+  - `email.saveMessages` - Batch email import
+</Accordion>
+
+## Rate Limit Headers
+
+When a rate limit is exceeded, the error response includes retry information:
+
+```json
+{
+  "error": {
+    "code": "TOO_MANY_REQUESTS",
+    "message": "Rate limit exceeded for mutation.",
+    "data": {
+      "rateLimit": {
+        "retryAfterSeconds": 45,
+        "bucket": "mutation",
+        "limit": 30
+      }
+    }
+  }
+}
+```
+
+<ResponseField name="retryAfterSeconds" type="number">
+  Seconds until the rate limit window resets
+</ResponseField>
+
+<ResponseField name="bucket" type="string">
+  Which bucket was exceeded: `general`, `mutation`, or `heavy`
+</ResponseField>
+
+<ResponseField name="limit" type="number">
+  The maximum allowed requests for this bucket
+</ResponseField>
+
+## Rate Limit Windows
+
+All rate limits use a **1-minute sliding window**:
+
+- Window starts at the beginning of each minute (e.g., 10:00:00, 10:01:00)
+- Counters reset at the start of each new window
+- Multiple bucket limits can trigger independently
+
+## Handling Rate Limits
+
+### Exponential Backoff
+
+```typescript
+async function makeRequestWithRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error.code === 'TOO_MANY_REQUESTS' && attempt < maxRetries) {
+        const retryAfter = error.data?.rateLimit?.retryAfterSeconds || 60;
+        const delay = Math.min(retryAfter * 1000, 60000); // Cap at 60s
+        
+        console.log(`Rate limited. Retrying in ${retryAfter}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+// Usage
+const contact = await makeRequestWithRetry(() =>
+  client.contacts.create.mutate({ firstName: 'John', lastName: 'Doe' })
+);
+```
+
+### Batching Requests
+
+tRPC supports HTTP batching to reduce request count:
+
+```typescript
+const client = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: 'https://api.reliocrm.com/trpc',
+      maxURLLength: 2083,
+      // Batch multiple queries into a single HTTP request
+    }),
+  ],
+});
+
+// These are batched into one HTTP request
+const [contacts, properties, companies] = await Promise.all([
+  client.contacts.list.query({ limit: 10 }),
+  client.properties.list.query({ limit: 10 }),
+  client.companies.list.query({ limit: 10 }),
+]);
+```
+
+### Rate Limit Monitoring
+
+Track your usage to avoid hitting limits:
+
+```typescript
+let requestCount = { general: 0, mutation: 0, heavy: 0 };
+let windowStart = Date.now();
+
+function trackRequest(type: 'query' | 'mutation', isHeavy = false) {
+  const now = Date.now();
+  
+  // Reset counters every minute
+  if (now - windowStart >= 60000) {
+    requestCount = { general: 0, mutation: 0, heavy: 0 };
+    windowStart = now;
+  }
+  
+  requestCount.general++;
+  if (type === 'mutation') requestCount.mutation++;
+  if (isHeavy) requestCount.heavy++;
+  
+  console.log('Current usage:', requestCount);
+}
+```
+
+## Workspace Seat Limits
+
+Free workspaces with more members than their seat limit (1 user) are locked from most operations until:
+
+- Members are removed
+- A trial is started
+- The workspace is upgraded to Pro
+
+Allowed operations when over seat limit:
+- `billing.*` - Manage billing
+- `getRole` - Check workspace role
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use pagination">
+    Fetch data in smaller chunks instead of large exports:
+    
+    ```typescript
+    // Good: Paginate results
+    const contacts = await client.contacts.list.query({
+      limit: 50,
+      offset: 0,
+    });
+    
+    // Avoid: Exporting all data
+    const allContacts = await client.contacts.exportAll.query();
+    ```
+  </Accordion>
+
+  <Accordion title="Cache responses">
+    Store frequently accessed data locally to reduce API calls:
+    
+    ```typescript
+    const cache = new Map();
+    
+    async function getCachedContact(id: string) {
+      if (cache.has(id)) return cache.get(id);
+      
+      const contact = await client.contacts.getById.query(id);
+      cache.set(id, contact);
+      return contact;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Batch operations">
+    Use bulk endpoints when creating multiple records:
+    
+    ```typescript
+    // Good: Single bulk operation
+    await client.contacts.bulkCreate.mutate({
+      rows: [contact1, contact2, contact3],
+    });
+    
+    // Avoid: Multiple individual creates
+    await client.contacts.create.mutate(contact1);
+    await client.contacts.create.mutate(contact2);
+    await client.contacts.create.mutate(contact3);
+    ```
+  </Accordion>
+
+  <Accordion title="Upgrade for higher limits">
+    Pro workspaces receive 3-6x higher rate limits across all buckets.
+  </Accordion>
+</AccordionGroup>
+
+## Error Recovery
+
+```typescript
+class RateLimitError extends Error {
+  constructor(
+    public retryAfterSeconds: number,
+    public bucket: string,
+    public limit: number
+  ) {
+    super(`Rate limit exceeded for ${bucket}. Retry after ${retryAfterSeconds}s.`);
+  }
+}
+
+try {
+  await client.contacts.create.mutate(data);
+} catch (error) {
+  if (error.code === 'TOO_MANY_REQUESTS') {
+    const { retryAfterSeconds, bucket, limit } = error.data.rateLimit;
+    throw new RateLimitError(retryAfterSeconds, bucket, limit);
+  }
+  throw error;
+}
+```

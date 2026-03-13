@@ -1,0 +1,390 @@
+---
+title: Maps & Geospatial Features
+description: Visualize and analyze your data with interactive maps powered by Mapbox
+icon: map
+---
+
+## Overview
+
+Relio's mapping features provide powerful geospatial visualization and analysis tools for properties, contacts, and territories. Built on Mapbox GL JS, the platform offers interactive maps with multiple basemap styles, drawing tools, and spatial search capabilities.
+
+<Info>
+  Maps integrate seamlessly with properties, contacts, and territories to provide location-based insights.
+</Info>
+
+## Map Interface
+
+### Basemap Styles
+
+Choose from multiple professionally designed basemap styles:
+
+**Time-of-Day Themes:**
+- **Dawn** - Soft morning colors
+- **Day** - Bright, high-contrast (default)
+- **Dusk** - Warm evening tones
+- **Night** - Dark mode optimized
+
+**Specialized Maps:**
+- **Satellite** - High-resolution aerial imagery
+- **Terrain** - Topographic features and elevation
+
+<Tip>
+  Your basemap preference is saved automatically and persists across sessions.
+</Tip>
+
+### Map Controls
+
+Built-in controls for map interaction:
+
+- **Zoom Controls** - Zoom in/out with buttons or mouse wheel
+- **Compass** - Reset map orientation to north
+- **Geolocate** - Center map on your current location
+- **Fullscreen** - Expand map to full browser window
+- **Draw Tools** - Create custom shapes and areas
+
+## Property Visualization
+
+### Property Markers
+
+Properties are displayed on the map with intelligent clustering:
+
+**Marker Types:**
+- Individual property pins at high zoom levels
+- Cluster circles showing property count at low zoom
+- Custom icons for different property types
+- Color-coded markers based on property status
+
+**Interaction:**
+```typescript
+// Properties are rendered using MapMarkers component
+import { MapMarkers, type MapProperty } from '@/components/map/map-markers';
+
+<MapMarkers
+  properties={properties}
+  onPropertyClick={(property) => {
+    // Handle property selection
+    setSelectedProperty(property);
+  }}
+  highlightedIds={selectedIds}
+/>
+```
+
+### Property Details
+
+Click any property marker to view:
+- Full property details in a side panel
+- Photos and property images
+- Related contacts and deals
+- Activity history
+- Quick actions (edit, create task, etc.)
+
+## Spatial Search
+
+### Drawing Tools
+
+Create custom search areas using multiple drawing modes:
+
+<AccordionGroup>
+  <Accordion title="Polygon Search">
+    Draw custom shapes to search properties:
+    1. Click "Draw" in the toolbar
+    2. Click points on the map to create vertices
+    3. Double-click to complete the polygon
+    4. All properties within the shape are selected
+  </Accordion>
+  
+  <Accordion title="Radius Search">
+    Search within a circular area:
+    1. Select "Radius" from draw tools
+    2. Click a center point on the map
+    3. Drag to set the search radius
+    4. Properties within the circle are selected
+  </Accordion>
+  
+  <Accordion title="Rectangle Search">
+    Quick rectangular selection:
+    1. Hold Shift while dragging on the map
+    2. Release to select all properties in the rectangle
+  </Accordion>
+</AccordionGroup>
+
+### Creating Lists from Search
+
+Convert spatial search results into saved lists:
+
+<Steps>
+  <Step title="Perform Spatial Search">
+    Use polygon, radius, or rectangle tools to select properties
+  </Step>
+  
+  <Step title="Review Selection">
+    View selected properties count in the sidebar
+  </Step>
+  
+  <Step title="Create List">
+    Click "Save as List" and name your new list
+  </Step>
+  
+  <Step title="Access Later">
+    Find your saved list in the Lists section
+  </Step>
+</Steps>
+
+## Territory Management
+
+### Creating Territories
+
+Define geographic territories for your team:
+
+```typescript
+// Create a new territory with a boundary
+const territory = await trpc.territories.create.mutate({
+  name: "Downtown District",
+  color: "#3b82f6",
+  description: "City center coverage area",
+  boundary: {
+    type: "Polygon",
+    coordinates: [[
+      [-122.4194, 37.7749],
+      [-122.4194, 37.7849],
+      [-122.4094, 37.7849],
+      [-122.4094, 37.7749],
+      [-122.4194, 37.7749]
+    ]]
+  },
+  isExclusive: true
+});
+```
+
+### Territory Visualization
+
+Territories appear as colored polygons on the map:
+
+- **Fill color** - Translucent territory area
+- **Border** - Solid territory boundary
+- **Labels** - Territory name and assignees
+- **Hover effects** - Highlight on mouse over
+
+<CodeGroup>
+```typescript List Territories
+const territories = await trpc.territories.list.query();
+
+territories.forEach(t => {
+  console.log(t.name, t.assignees.length);
+});
+```
+
+```typescript GeoJSON Export
+// Get territories as GeoJSON for map rendering
+const geoJson = await trpc.territories.geoJson.query();
+
+<Source id="territories" type="geojson" data={geoJson}>
+  <Layer {...territoryFillLayer} />
+  <Layer {...territoryLineLayer} />
+</Source>
+```
+</CodeGroup>
+
+### Territory Coverage
+
+Analyze which properties and contacts fall within territories:
+
+```typescript
+const coverage = await trpc.territories.coverage.query({
+  territoryIds: ["territory_id_1", "territory_id_2"]
+});
+
+coverage.forEach(result => {
+  console.log(`${result.territoryName}:`);
+  console.log(`  Properties: ${result.propertyCount}`);
+  console.log(`  Contacts: ${result.contactCount}`);
+  console.log(`  Deals: ${result.dealCount}`);
+});
+```
+
+### Territory Gaps
+
+Identify properties not covered by any territory:
+
+```typescript
+const gaps = await trpc.territories.gaps.query({
+  limit: 100
+});
+
+console.log(`${gaps.length} properties without territory assignment`);
+```
+
+<Warning>
+  Territory gap analysis uses PostGIS spatial queries and requires properties to have valid latitude/longitude coordinates.
+</Warning>
+
+## Parcel Boundaries
+
+### Parcel Visualization
+
+View official property parcel boundaries when available:
+
+- Automatically loads at high zoom levels (14+)
+- Shows cadastral boundaries from county records
+- Displays ownership parcels
+- Overlays property markers
+
+### Parcel Data Integration
+
+Integration with parcel data providers:
+
+```typescript
+import { ParcelMap } from '@/components/regrid/parcel-map';
+import { RegridParcelPanel } from '@/components/regrid/regrid-parcel-panel';
+
+// Display parcels with property data
+<ParcelMap
+  properties={properties}
+  selectedParcel={selectedParcel}
+  onParcelClick={(parcelId) => setSelectedParcel(parcelId)}
+/>
+```
+
+## County & City Boundaries
+
+### Boundary Layers
+
+Display administrative boundaries:
+
+**County Boundaries:**
+- Visible at zoom levels 4-12
+- Gray lines with adjustable opacity
+- Helps understand regional context
+
+**City Boundaries:**
+- Loaded on-demand via Census Bureau API
+- Purple dashed lines
+- Overlay on city search results
+
+### City Search
+
+Search and focus on specific cities:
+
+<Steps>
+  <Step title="Enter City Name">
+    Use the search bar to find a city by name and state
+  </Step>
+  
+  <Step title="View Boundary">
+    City boundary is displayed as a purple polygon
+  </Step>
+  
+  <Step title="Filter Properties">
+    Optionally filter to show only properties within the city
+  </Step>
+</Steps>
+
+## Map State Management
+
+The map maintains view state across navigation:
+
+```typescript
+interface MapViewState {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  pitch?: number;
+  bearing?: number;
+}
+
+const DEFAULT_VIEW: MapViewState = {
+  longitude: -98.5795,
+  latitude: 39.8283,
+  zoom: 4
+};
+```
+
+**Persistence:**
+- View state saved to URL parameters
+- Restored when returning to map
+- Shared via URL for collaboration
+
+## Table View
+
+Toggle between map and table views:
+
+**Map View:**
+- Visual property exploration
+- Spatial relationships
+- Territory visualization
+
+**Table View:**
+- Detailed property list
+- Sortable columns
+- Bulk actions
+- Export capabilities
+
+<Tip>
+  Use split-screen mode to see both map and table simultaneously.
+</Tip>
+
+## Performance Optimization
+
+### Vector Tiles
+
+For large datasets, properties are rendered using vector tiles:
+
+- Server-side tile generation
+- Efficient rendering of 10,000+ properties
+- Automatic clustering
+- Smooth pan and zoom
+
+### Layer Management
+
+Layers are loaded conditionally based on zoom level:
+
+```typescript
+// Parcels only at high zoom
+minzoom: 14
+
+// Clusters at low zoom
+maxzoom: 12
+
+// Individual markers at medium-high zoom
+minzoom: 12
+```
+
+## Keyboard Shortcuts
+
+<ResponseField name="Shortcuts" type="Map Navigation">
+  - **Arrow Keys** - Pan map
+  - **+/-** - Zoom in/out
+  - **Shift + Drag** - Draw rectangle
+  - **Escape** - Cancel drawing
+  - **Ctrl/Cmd + F** - Focus search
+</ResponseField>
+
+## Integration Points
+
+Maps connect with other Relio features:
+
+<CardGroup cols={2}>
+  <Card title="Properties" icon="building" href="/features/properties">
+    View and manage properties on the map
+  </Card>
+  
+  <Card title="Lists" icon="list" href="/features/lists">
+    Create lists from spatial searches
+  </Card>
+  
+  <Card title="Territories" icon="map-pin" href="/features/territories">
+    Define and assign geographic territories
+  </Card>
+  
+  <Card title="Activities" icon="calendar" href="/features/activities">
+    View activity locations on the map
+  </Card>
+</CardGroup>
+
+## API Reference
+
+Key map-related endpoints are documented at:
+
+- Properties: `/home/daytona/workspace/source/packages/api/src/routers/properties.ts`
+- Territories: `/home/daytona/workspace/source/packages/api/src/routers/territories.ts`
+- Map Components: `/home/daytona/workspace/source/apps/web/src/components/map/`

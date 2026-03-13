@@ -1,0 +1,375 @@
+---
+title: "Companies"
+description: "Track organizations, firms, and business relationships"
+icon: "building"
+---
+
+## Overview
+
+Companies in Relio represent organizations you work with - investment firms, property management companies, brokerages, contractors, and more. Track company details, relationships, and automatically enrich data from web sources.
+
+## Creating Companies
+
+<Steps>
+  <Step title="Navigate to Companies">
+    Click "Companies" in the main navigation
+  </Step>
+  
+  <Step title="Add New Company">
+    Click "+ New Company" in the top right
+  </Step>
+  
+  <Step title="Enter Basic Information">
+    Fill in the company name and website/domain
+  </Step>
+  
+  <Step title="Add Details">
+    Optionally add type, location, description, and other details
+  </Step>
+</Steps>
+
+<Note>
+  Companies are automatically created when contacts are enriched, based on their email domain or job information.
+</Note>
+
+## Company Fields
+
+### Basic Information
+
+<CardGroup cols={2}>
+  <Card title="Identity" icon="id-card">
+    Name, domain, logo, and company type
+  </Card>
+  <Card title="Contact Info" icon="address-book">
+    Email, phone, physical address, and location
+  </Card>
+  <Card title="Social Presence" icon="share-nodes">
+    LinkedIn, Twitter, Facebook, Instagram, AngelList
+  </Card>
+  <Card title="Business Data" icon="chart-mixed">
+    Categories, employee range, funding, revenue estimates
+  </Card>
+</CardGroup>
+
+### Company Types
+
+Categorize companies by their role in your business:
+
+- **Client**: Active customers or partners
+- **Prospect**: Potential clients you're pursuing
+- **Vendor**: Service providers and suppliers
+- **Partner**: Strategic business partners
+- **Investor**: Investment firms or funds
+- **Competitor**: Competitive organizations
+- **Other**: Miscellaneous organizations
+
+### Location Data
+
+Track company headquarters and primary location:
+
+```typescript
+{
+  address: "123 Main Street",
+  city: "San Francisco",
+  state: "CA",
+  zip: "94105",
+  primaryLocation: "San Francisco, CA",
+  latitude: 37.7749,
+  longitude: -122.4194
+}
+```
+
+### Company Metrics
+
+Enriched company data includes:
+
+- **Employee Range**: 1-10, 11-50, 51-200, 201-500, 501-1000, 1001-5000, 5001-10000, 10001+
+- **Estimated ARR**: pre_revenue, under_1m, 1m_10m, 10m_50m, 50m_100m, 100m_500m, 500m_1b, over_1b
+- **Funding Raised**: Total funding in dollars
+- **Foundation Date**: When the company was founded
+- **Twitter Followers**: Social media reach
+
+## Company Enrichment
+
+### Automatic Enrichment
+
+When a company is auto-created from contact enrichment:
+
+1. **Firecrawl Extraction**: Scrapes the company website for data
+2. **AI Description**: Generates a professional company description
+3. **Logo Detection**: Fetches company logo (or uses Google favicon)
+4. **Social Profiles**: Discovers LinkedIn, Twitter, and other profiles
+5. **Business Data**: Extracts employee count, funding, and categories
+
+The company detail page shows:
+- Last enriched timestamp: `companies.lastEnrichedAt`
+- Data sources used for enrichment
+- Which fields were auto-populated
+
+### Manual Enrichment
+
+Enrich any company on-demand:
+
+<Steps>
+  <Step title="Open Company">
+    Navigate to the company detail page
+  </Step>
+  
+  <Step title="Click Enrich">
+    Click the "Enrich" button in the header
+  </Step>
+  
+  <Step title="Review Data">
+    Relio fetches data from Firecrawl and Exa
+  </Step>
+  
+  <Step title="Apply Updates">
+    Enriched data is automatically applied to empty fields
+  </Step>
+</Steps>
+
+<Tip>
+  Enrichment only updates empty fields, so your manual edits are never overwritten.
+</Tip>
+
+### Enrichment Fallbacks
+
+If Firecrawl doesn't return data, Relio falls back to Exa search:
+
+1. Searches for the company by name and industry
+2. Extracts website URL and domain
+3. Finds LinkedIn profile
+4. Sets a fallback logo from Google favicons
+
+## Company Relationships
+
+### Linked Contacts
+
+Contacts are automatically linked to companies based on:
+
+- **Email Domain**: Contact's work email domain matches company domain
+- **Job Information**: Contact's employer name matches company name
+- **Manual Linking**: Users can manually link contacts to companies
+
+View all contacts associated with a company on the company detail page.
+
+### Linked Properties
+
+Track which properties are owned or managed by a company:
+
+- View properties on the company detail page
+- Link properties to companies via the property detail page
+- Track relationship type (owner, manager, tenant, etc.)
+
+### Linked Deals
+
+See all active and closed deals involving a company:
+
+- Deals where the company is the buyer or seller
+- Transaction history and pipeline stage
+- Total deal value and success rate
+
+## Filtering and Organization
+
+### Search and Filters
+
+Filter companies by:
+
+- **Name or Domain**: Text search across company info
+- **Type**: Filter by company type (client, vendor, etc.)
+- **City**: Location-based filtering
+- **Tags**: Custom tags for categorization
+- **Lists**: Membership in static or smart lists
+
+### Sorting Options
+
+Sort companies by:
+
+- Name (A-Z or Z-A)
+- Type
+- City
+- Created date
+- Twitter followers (for social reach)
+- Funding raised
+
+### Company Lists
+
+Organize companies into lists for:
+
+- Target prospect lists
+- Vendor management
+- Investment portfolio tracking
+- Market segment analysis
+
+## Company Intelligence
+
+### Categories
+
+Companies can have multiple industry categories:
+
+```typescript
+{
+  categories: [
+    "Real Estate",
+    "Property Management",
+    "Commercial Real Estate",
+    "Investment Management"
+  ]
+}
+```
+
+Use categories to:
+- Segment your market
+- Identify competitor overlap
+- Find partnership opportunities
+- Target similar companies
+
+### Social Metrics
+
+Track social media presence:
+
+- Twitter follower count and engagement
+- LinkedIn company page
+- Facebook business page
+- Instagram profile
+
+Use social metrics to:
+- Gauge company reach and influence
+- Research before outreach
+- Identify marketing opportunities
+
+## Data Quality
+
+### Enrichment Sources
+
+Relio uses multiple data sources:
+
+1. **Firecrawl**: Primary web scraping for company data
+2. **Exa**: Fallback search for missing information
+3. **Google Favicons**: Logo fallback when not found
+4. **AI Generation**: Description enhancement
+
+### Data Freshness
+
+Keep company data current:
+
+- Enrichment timestamp shows data age: `companies.lastEnrichedAt`
+- Re-enrich quarterly to capture changes
+- Update manually when you learn new information
+- Set reminders to review key accounts
+
+## Bulk Operations
+
+### Import Companies
+
+Bulk import from CSV or API:
+
+```typescript
+await trpc.companies.bulkCreate.mutate({
+  rows: [
+    { name: "Acme Corp", domain: "acme.com", type: "client" },
+    { name: "Beta LLC", domain: "beta.io", type: "prospect" },
+    // ... more companies
+  ]
+});
+```
+
+### Export Companies
+
+Export filtered companies:
+
+```typescript
+const companies = await trpc.companies.exportAll.query({
+  type: "client",
+  city: "San Francisco",
+  tagIds: ["enterprise"]
+});
+// Returns up to 5,000 companies
+```
+
+## Company Analytics
+
+### Aggregations
+
+Analyze your company database:
+
+```typescript
+const stats = await trpc.companies.aggregations.query({
+  aggregations: [
+    { column: "type", aggregate: "count" },
+    { column: "fundingRaised", aggregate: "sum" },
+    { column: "twitterFollowerCount", aggregate: "avg" }
+  ]
+});
+```
+
+Use aggregations for:
+- Portfolio analysis
+- Market insights
+- Targeting strategies
+- Performance tracking
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Data Management">
+    - Always include a domain for enrichment
+    - Use company type consistently
+    - Add logos for visual recognition
+    - Keep descriptions concise and professional
+    - Re-enrich quarterly for active companies
+  </Accordion>
+  
+  <Accordion title="Relationship Tracking">
+    - Link all related contacts to companies
+    - Tag companies for segmentation
+    - Track key decision makers
+    - Monitor social media presence
+    - Document partnership terms in notes
+  </Accordion>
+  
+  <Accordion title="Team Collaboration">
+    - Share company lists with relevant team members
+    - Use tags for territory management
+    - Add activities to company timelines
+    - Set up alerts for key accounts
+    - Document competitive intelligence
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+Key company operations:
+
+```typescript
+// List companies
+const { items, total } = await trpc.companies.list.query({
+  limit: 50,
+  offset: 0,
+  search: "acme",
+  type: "client",
+  sort: { field: "name", direction: "asc" }
+});
+
+// Get single company
+const company = await trpc.companies.getById.query("company_id");
+
+// Create company
+const newCompany = await trpc.companies.create.mutate({
+  name: "Acme Corp",
+  domain: "acme.com",
+  type: "prospect"
+});
+
+// Update company
+const updated = await trpc.companies.update.mutate({
+  id: "company_id",
+  type: "client",
+  description: "Updated description"
+});
+
+// Enrich company
+const enriched = await trpc.companies.enrich.mutate({
+  id: "company_id"
+});
+```

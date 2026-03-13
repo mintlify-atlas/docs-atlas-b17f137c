@@ -1,0 +1,508 @@
+---
+title: 'Tasks'
+description: 'Manage workspace tasks and to-dos'
+api: 'POST /trpc/tasks.{procedure}'
+---
+
+## Overview
+
+The tasks router manages workspace task management with assignees, linked records, and customizable columns.
+
+## Data Structure
+
+<ResponseField name="id" type="string" required>
+  Unique task identifier
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required>
+  Workspace this task belongs to
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Task title
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Task description (rich HTML)
+</ResponseField>
+
+<ResponseField name="status" type="enum" required>
+  Task status: `todo`, `in_progress`, `done`, `cancelled`
+</ResponseField>
+
+<ResponseField name="statusEnteredAt" type="datetime">
+  When task entered current status
+</ResponseField>
+
+<ResponseField name="priority" type="enum">
+  Priority: `low`, `medium`, `high`, `urgent`
+</ResponseField>
+
+<ResponseField name="dueDate" type="datetime">
+  Task due date
+</ResponseField>
+
+<ResponseField name="position" type="number">
+  Display position for manual sorting
+</ResponseField>
+
+<ResponseField name="createdById" type="string" required>
+  User who created the task
+</ResponseField>
+
+<ResponseField name="contactId" type="string">
+  Linked contact (legacy, use linkedRecords)
+</ResponseField>
+
+<ResponseField name="propertyId" type="string">
+  Linked property (legacy, use linkedRecords)
+</ResponseField>
+
+<ResponseField name="companyId" type="string">
+  Linked company (legacy, use linkedRecords)
+</ResponseField>
+
+<ResponseField name="dealId" type="string">
+  Linked deal (legacy, use linkedRecords)
+</ResponseField>
+
+<ResponseField name="assignees" type="array">
+  Assigned users
+  <Expandable title="Assignee structure">
+    <ResponseField name="userId" type="string">
+      User ID
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      User name
+    </ResponseField>
+    <ResponseField name="image" type="string">
+      User avatar URL
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="linkedRecords" type="array">
+  Linked CRM records (supports multiple links)
+  <Expandable title="Linked record structure">
+    <ResponseField name="recordId" type="string">
+      Record ID
+    </ResponseField>
+    <ResponseField name="recordType" type="enum">
+      Type: `contact`, `property`, `company`, `deal`
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Record display name
+    </ResponseField>
+    <ResponseField name="image" type="string">
+      Record image/logo URL
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="createdAt" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="datetime">
+  Last update timestamp
+</ResponseField>
+
+## List Tasks
+
+```typescript tasks.list
+const result = await client.tasks.list.query({
+  limit: 50,
+  status: 'todo',
+  priority: 'high',
+  assigneeId: 'user_id',
+  contactId: 'contact_id',
+  viewMode: 'mine', // or 'all'
+  sortField: 'dueDate',
+  sortDirection: 'asc',
+});
+```
+
+<ParamField path="limit" type="number" default="50">
+  Records to return
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Pagination cursor
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search by task title
+</ParamField>
+
+<ParamField path="status" type="enum">
+  Filter by status: `todo`, `in_progress`, `done`, `cancelled`
+</ParamField>
+
+<ParamField path="priority" type="enum">
+  Filter by priority: `low`, `medium`, `high`, `urgent`
+</ParamField>
+
+<ParamField path="assigneeId" type="string">
+  Filter by assigned user
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Filter by linked contact
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Filter by linked property
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Filter by linked company
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Filter by linked deal
+</ParamField>
+
+<ParamField path="dueBefore" type="datetime">
+  Filter by due date before timestamp
+</ParamField>
+
+<ParamField path="dueAfter" type="datetime">
+  Filter by due date after timestamp
+</ParamField>
+
+<ParamField path="viewMode" type="enum" default="mine">
+  View mode:
+  - `mine` - Tasks created by or assigned to current user
+  - `all` - All workspace tasks (admin/owner only)
+</ParamField>
+
+<ParamField path="sortField" type="enum" default="createdAt">
+  Sort field: `title`, `status`, `priority`, `dueDate`, `createdAt`, `position`
+</ParamField>
+
+<ParamField path="sortDirection" type="enum" default="desc">
+  Sort direction: `asc`, `desc`
+</ParamField>
+
+<ResponseField name="items" type="array">
+  Tasks with assignees and linked records
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string">
+  Pagination cursor
+</ResponseField>
+
+## List All Tasks
+
+```typescript tasks.listAll
+const tasks = await client.tasks.listAll.query();
+```
+
+Returns up to 500 tasks (non-paginated). Respects `viewMode` access control.
+
+## Get Task by ID
+
+```typescript tasks.getById
+const task = await client.tasks.getById.query('task_id');
+```
+
+Members can only access tasks they created or are assigned to.
+
+## Create Task
+
+```typescript tasks.create
+const task = await client.tasks.create.mutate({
+  title: 'Follow up with prospect',
+  description: '<p>Discuss pricing options</p>',
+  status: 'todo',
+  priority: 'high',
+  dueDate: new Date('2024-03-25'),
+  assigneeIds: ['user1', 'user2'],
+  linkedRecords: [
+    { recordId: 'contact_id', recordType: 'contact' },
+    { recordId: 'deal_id', recordType: 'deal' },
+  ],
+});
+```
+
+<ParamField path="title" type="string" required>
+  Task title
+</ParamField>
+
+<ParamField path="description" type="string">
+  Task description (rich HTML)
+</ParamField>
+
+<ParamField path="status" type="enum" default="todo">
+  Initial status
+</ParamField>
+
+<ParamField path="priority" type="enum">
+  Task priority
+</ParamField>
+
+<ParamField path="dueDate" type="datetime">
+  Due date
+</ParamField>
+
+<ParamField path="assigneeIds" type="string[]">
+  User IDs to assign
+</ParamField>
+
+<ParamField path="linkedRecords" type="array">
+  Records to link (new format, supports multiple)
+  <Expandable title="Linked record object">
+    <ParamField path="recordId" type="string" required>
+      Record ID
+    </ParamField>
+    <ParamField path="recordType" type="enum" required>
+      Type: `contact`, `property`, `company`, `deal`
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Legacy single contact link (merged with linkedRecords)
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Legacy single property link
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Legacy single company link
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Legacy single deal link
+</ParamField>
+
+<Note>
+  The first record of each type in `linkedRecords` is stored in the legacy single-link columns for backwards compatibility.
+</Note>
+
+## Update Task
+
+```typescript tasks.update
+const updated = await client.tasks.update.mutate({
+  id: 'task_id',
+  status: 'in_progress',
+  priority: 'urgent',
+  assigneeIds: ['user1', 'user2', 'user3'],
+});
+```
+
+<ParamField path="id" type="string" required>
+  Task ID
+</ParamField>
+
+<ParamField path="assigneeIds" type="string[]">
+  Replace all assignees (pass empty array to clear)
+</ParamField>
+
+<ParamField path="linkedRecords" type="array">
+  Replace all linked records
+</ParamField>
+
+All other fields are optional.
+
+### Status Change Tracking
+
+When `status` changes, `statusEnteredAt` is automatically updated to the current timestamp.
+
+<Note>
+  Members can only update tasks they created or are assigned to.
+</Note>
+
+## Delete Task
+
+```typescript tasks.delete
+await client.tasks.delete.mutate('task_id');
+```
+
+<Note>
+  Members can only delete tasks they created or are assigned to.
+</Note>
+
+## Board View
+
+```typescript tasks.board
+const columns = await client.tasks.board.query();
+```
+
+Returns tasks grouped by status (Kanban board format):
+
+<ResponseField name="columns" type="array">
+  Array of status columns:
+  <Expandable title="Column structure">
+    <ResponseField name="status" type="enum">
+      Status: `todo`, `in_progress`, `done`, `cancelled`
+    </ResponseField>
+    <ResponseField name="tasks" type="array">
+      Tasks in this status
+    </ResponseField>
+    <ResponseField name="count" type="number">
+      Number of tasks
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+Tasks are sorted by position, then creation date (newest first).
+
+## Column Preferences
+
+Customize task board column appearance and behavior.
+
+### Get Column Preferences
+
+```typescript tasks.getColumnPreferences
+const prefs = await client.tasks.getColumnPreferences.query();
+```
+
+Returns column preferences keyed by status:
+
+<ResponseField name="{status}" type="object">
+  Preferences for each status column
+  <Expandable title="Preference object">
+    <ResponseField name="id" type="string">
+      Preference ID
+    </ResponseField>
+    <ResponseField name="column" type="string">
+      Status name
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Custom display name
+    </ResponseField>
+    <ResponseField name="color" type="string">
+      Custom hex color
+    </ResponseField>
+    <ResponseField name="trackTimeInStatus" type="boolean">
+      Track time spent in status
+    </ResponseField>
+    <ResponseField name="showConfetti" type="boolean">
+      Show confetti animation when moving to this status
+    </ResponseField>
+    <ResponseField name="hidden" type="boolean">
+      Hide column from board view
+    </ResponseField>
+    <ResponseField name="isComplete" type="boolean">
+      Mark status as "complete" (like Done)
+    </ResponseField>
+    <ResponseField name="targetTimeInStatus" type="number">
+      Target time in this status
+    </ResponseField>
+    <ResponseField name="targetTimeUnit" type="enum">
+      Time unit: `days`, `weeks`, `months`, `years`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Update Column Preference
+
+```typescript tasks.updateColumnPreference
+const pref = await client.tasks.updateColumnPreference.mutate({
+  column: 'in_progress',
+  name: 'In Development',
+  color: '#3B82F6',
+  trackTimeInStatus: true,
+  targetTimeInStatus: 3,
+  targetTimeUnit: 'days',
+});
+```
+
+<ParamField path="column" type="string" required>
+  Status to customize
+</ParamField>
+
+<ParamField path="name" type="string">
+  Custom display name
+</ParamField>
+
+<ParamField path="color" type="string">
+  Custom hex color
+</ParamField>
+
+<ParamField path="trackTimeInStatus" type="boolean">
+  Enable time tracking
+</ParamField>
+
+<ParamField path="showConfetti" type="boolean">
+  Show confetti on entry
+</ParamField>
+
+<ParamField path="hidden" type="boolean">
+  Hide from board
+</ParamField>
+
+<ParamField path="isComplete" type="boolean">
+  Mark as complete status
+</ParamField>
+
+<ParamField path="targetTimeInStatus" type="number">
+  Target duration
+</ParamField>
+
+<ParamField path="targetTimeUnit" type="enum">
+  Time unit: `days`, `weeks`, `months`, `years`
+</ParamField>
+
+## Access Control
+
+### Members
+
+Regular members can:
+- View tasks they created or are assigned to
+- Create new tasks
+- Update tasks they created or are assigned to
+- Delete tasks they created or are assigned to
+
+### Admins & Owners
+
+Admins and owners can:
+- View all workspace tasks
+- Manage any task
+- Access `viewMode: 'all'` in list queries
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Link tasks to records">
+    Use `linkedRecords` to associate tasks with multiple CRM records:
+    
+    ```typescript
+    linkedRecords: [
+      { recordId: 'contact_id', recordType: 'contact' },
+      { recordId: 'property_id', recordType: 'property' },
+      { recordId: 'deal_id', recordType: 'deal' },
+    ]
+    ```
+  </Accordion>
+
+  <Accordion title="Assign collaboratively">
+    Assign tasks to multiple team members for visibility:
+    
+    ```typescript
+    assigneeIds: ['user1', 'user2']
+    ```
+  </Accordion>
+
+  <Accordion title="Use priorities effectively">
+    Set priorities to help team members focus:
+    - `urgent` - Critical, needs immediate attention
+    - `high` - Important, should be done soon
+    - `medium` - Normal priority
+    - `low` - Nice to have, can wait
+  </Accordion>
+
+  <Accordion title="Set due dates">
+    Always set `dueDate` for time-sensitive tasks to enable deadline tracking.
+  </Accordion>
+
+  <Accordion title="Customize column behavior">
+    Use column preferences to:
+    - Track time in each status
+    - Set target completion times
+    - Celebrate wins with confetti
+    - Hide unused statuses
+  </Accordion>
+</AccordionGroup>

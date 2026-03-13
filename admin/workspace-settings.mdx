@@ -1,0 +1,184 @@
+---
+title: Workspace Settings
+description: Configure and manage your Relio workspace settings
+icon: settings
+---
+
+## Overview
+
+Workspace settings control global configurations for your Relio organization. Access to workspace settings is restricted based on your role:
+
+- **Owner**: Full access to all settings including workspace deletion
+- **Admin**: Access to most settings except billing and workspace deletion
+- **Member**: Read-only access to workspace information
+
+## Role-Based Access Control
+
+<Info>
+Relio uses a three-tier permission system for workspace administration:
+
+- **Owner**: The workspace creator with unrestricted access
+- **Admin**: Elevated permissions for managing workspace resources
+- **Member**: Standard user with limited administrative access
+</Info>
+
+### Permission Matrix
+
+| Action | Owner | Admin | Member |
+|--------|-------|-------|--------|
+| View workspace info | ✓ | ✓ | ✓ |
+| Manage custom fields | ✓ | ✓ | ✗ |
+| Manage pipelines | ✓ | ✓ | ✗ |
+| Manage integrations | ✓ | ✓ | ✗ |
+| Delete records | ✓ | ✓ | ✗ |
+| Manage billing | ✓ | ✗ | ✗ |
+| Invite/remove users | ✓ | ✗ | ✗ |
+| Delete workspace | ✓ | ✗ | ✗ |
+
+## Workspace Information
+
+Your workspace contains the following metadata:
+
+- **Name**: Display name for your organization
+- **Slug**: URL-friendly identifier (e.g., `acme-realty`)
+- **Logo**: Optional workspace logo
+- **Created**: Workspace creation timestamp
+
+## Workspace Deletion
+
+<Warning>
+Deleting a workspace is **permanent and irreversible**. All data will be permanently removed.
+</Warning>
+
+### What Gets Deleted
+
+When you delete a workspace, the following data is permanently removed:
+
+**Core Records**
+- All contacts, properties, companies, and deals
+- Custom field definitions and values
+- Activities, tasks, and notes
+- Email templates and messages
+
+**Files & Attachments**
+- File attachments and folders
+- File sharing settings
+
+**Collaboration**
+- Lists and views
+- Favorites and bookmarks
+- Notifications
+- AI chat sessions and messages
+
+**Configuration**
+- Deal pipelines and stages
+- Custom fields
+- Integrations and API tokens
+- Webhooks
+- Tags and territories
+
+**Billing & Analytics**
+- Billing history
+- AI usage analytics
+- Agent sites and custom domains
+
+### Deletion Process
+
+<Steps>
+  <Step title="Navigate to workspace settings">
+    Access the workspace settings page from the main navigation menu.
+  </Step>
+  
+  <Step title="Locate the danger zone">
+    Scroll to the bottom of the settings page to find the "Delete Workspace" section.
+  </Step>
+  
+  <Step title="Confirm by typing workspace name">
+    To prevent accidental deletion, you must type your exact workspace name to confirm.
+    
+    ```typescript
+    // The system verifies the confirmation name matches exactly
+    if (input.confirmationName !== org.name) {
+      throw new Error("Organization name does not match");
+    }
+    ```
+  </Step>
+  
+  <Step title="Review and delete">
+    Review the list of data that will be deleted, then click "Delete Workspace" to proceed.
+  </Step>
+</Steps>
+
+### Technical Details
+
+The deletion process occurs in multiple waves to maintain referential integrity:
+
+1. **Wave 1**: Leaf tables with workspace ID (standalone data)
+2. **Wave 2**: Parent tables (children auto-cascade via foreign keys)
+3. **Wave 3**: Mid-level parent tables (deals, file folders)
+4. **Wave 4**: Root entity tables (contacts, properties, companies)
+5. **Wave 5**: Clear active organization from user sessions
+6. **Wave 6**: Delete the organization record (cascades to members, invitations, billing)
+
+<Note>
+The deletion process is wrapped in a database transaction. If any step fails, all changes are rolled back and no data is deleted.
+</Note>
+
+## Best Practices
+
+### Before Deleting a Workspace
+
+1. **Export your data**: Use the data export feature to download a backup of all records
+2. **Notify team members**: Inform all workspace members before proceeding
+3. **Review integrations**: Disconnect any active integrations or API tokens
+4. **Cancel subscriptions**: Ensure billing is handled appropriately
+
+### Workspace Naming
+
+- Use clear, descriptive names for your workspace
+- Keep slugs URL-friendly and professional
+- Update workspace logo to match your brand
+
+### Security
+
+- Limit owner role to one or two trusted administrators
+- Grant admin role only to users who need elevated permissions
+- Regularly review member list and remove inactive users
+- Use API tokens instead of sharing admin credentials
+
+## API Reference
+
+Workspace management is available via the tRPC API:
+
+```typescript
+// Delete a workspace (owner only)
+await api.workspace.deleteOrganization.mutate({
+  confirmationName: "Acme Realty"
+});
+```
+
+### Error Codes
+
+- `NOT_FOUND`: Organization not found
+- `BAD_REQUEST`: Confirmation name does not match
+- `FORBIDDEN`: User is not the workspace owner
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="User Management" icon="users" href="/admin/user-management">
+    Invite users and manage team member permissions
+  </Card>
+  
+  <Card title="Custom Fields" icon="input-text" href="/admin/custom-fields">
+    Create custom fields for contacts, properties, and more
+  </Card>
+  
+  <Card title="Pipelines" icon="arrow-progress" href="/admin/pipelines">
+    Configure deal pipelines and stages
+  </Card>
+  
+  <Card title="Integrations" icon="plug" href="/integrations">
+    Connect external tools and services
+  </Card>
+</CardGroup>

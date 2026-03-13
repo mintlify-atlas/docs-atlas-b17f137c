@@ -1,0 +1,476 @@
+---
+title: "Webhooks"
+description: "Receive real-time notifications for events in your Relio workspace"
+---
+
+Webhooks allow you to receive HTTP POST requests whenever specific events occur in your Relio workspace. Use webhooks to keep external systems synchronized, trigger workflows, or build real-time integrations.
+
+## Overview
+
+When you register a webhook, Relio will send an HTTP POST request to your specified URL whenever a subscribed event occurs. Each webhook includes:
+
+- Event type (e.g., `contact.created`, `deal.updated`)
+- Event payload with full object data
+- HMAC signature for verification
+- Webhook ID for tracking
+
+## Creating a Webhook
+
+Create webhooks through your workspace settings or via the API:
+
+```typescript
+// Create a webhook endpoint that listens for contact events
+const webhook = await trpc.workspace.webhooks.create.mutate({
+  targetUrl: "https://your-app.com/webhooks/relio",
+  events: [
+    "contact.created",
+    "contact.updated",
+    "contact.deleted"
+  ]
+});
+
+// Save the signing secret securely - shown only once!
+console.log("Signing secret:", webhook.signingSecret);
+// Example: whsec_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4
+```
+
+<Warning>
+  The signing secret is only displayed once when creating a webhook. Store it securely in your environment variables or secrets manager.
+</Warning>
+
+## Available Events
+
+Relio supports webhooks for the following event types:
+
+### Contact Events
+- `contact.created` - New contact added
+- `contact.updated` - Contact information changed
+- `contact.deleted` - Contact removed
+
+### Property Events
+- `property.created` - New property added
+- `property.updated` - Property information changed
+- `property.deleted` - Property removed
+
+### Company Events
+- `company.created` - New company added
+- `company.updated` - Company information changed
+- `company.deleted` - Company removed
+
+### Deal Events
+- `deal.created` - New deal added
+- `deal.updated` - Deal information changed (stage, value, etc.)
+- `deal.deleted` - Deal removed
+
+### Task Events
+- `task.created` - New task created
+- `task.updated` - Task modified (status, assignee, etc.)
+- `task.deleted` - Task removed
+
+### List Events
+- `list.created` - New list created
+- `list.updated` - List modified
+- `list.deleted` - List removed
+
+### Comment Events
+- `comment.created` - New comment added
+- `comment.updated` - Comment edited
+- `comment.deleted` - Comment removed
+
+## Webhook Payload Structure
+
+Each webhook request includes:
+
+### Headers
+```
+x-relio-signature: t=1234567890,v1=a1b2c3d4...
+x-relio-event: contact.created
+x-relio-webhook-id: clx1234567890
+Content-Type: application/json
+```
+
+### Request Body
+```json
+{
+  "event": "contact.created",
+  "webhookId": "clx1234567890",
+  "timestamp": 1234567890,
+  "data": {
+    "id": "contact_123",
+    "workspaceId": "org_456",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890",
+    "createdAt": "2024-03-15T10:30:00Z",
+    "updatedAt": "2024-03-15T10:30:00Z"
+  }
+}
+```
+
+## Verifying Webhook Signatures
+
+<Warning>
+  Always verify webhook signatures to ensure requests are from Relio and haven't been tampered with.
+</Warning>
+
+Relio signs all webhook requests using HMAC-SHA256. The signature is included in the `x-relio-signature` header.
+
+### Signature Format
+
+The signature header format is:
+```
+t={timestamp},v1={signature}
+```
+
+- `t` - Unix timestamp (seconds) when the webhook was sent
+- `v1` - HMAC-SHA256 signature hex digest
+
+### Verification Algorithm
+
+1. Extract timestamp and signature from header
+2. Check timestamp is within tolerance (default: 5 minutes)
+3. Compute expected signature: `HMAC-SHA256(secret, "{timestamp}.{payload}")`
+4. Compare signatures using timing-safe comparison
+
+### Node.js Implementation
+
+```typescript
+import { createHmac, timingSafeEqual } from "crypto";
+
+const RELIO_SIGNATURE_HEADER = "x-relio-signature";
+const RELIO_EVENT_HEADER = "x-relio-event";
+const RELIO_WEBHOOK_ID_HEADER = "x-relio-webhook-id";
+
+function parseSignatureHeader(signatureHeader: string): {
+  timestamp: number;
+  signature: string;
+} | null {
+  const parts = signatureHeader.split(",").map(p => p.trim());
+  let timestamp: number | undefined;
+  let signature: string | undefined;
+
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+    if (key === "t") timestamp = parseInt(value, 10);
+    if (key === "v1") signature = value;
+  }
+
+  if (!timestamp || !signature) return null;
+  return { timestamp, signature };
+}
+
+function verifyWebhookSignature({
+  secret,
+  payload,
+  signatureHeader,
+  toleranceSeconds = 300 // 5 minutes
+}: {
+  secret: string;
+  payload: string;
+  signatureHeader: string;
+  toleranceSeconds?: number;
+}): boolean {
+  const parsed = parseSignatureHeader(signatureHeader);
+  if (!parsed) return false;
+
+  // Check timestamp tolerance
+  const now = Math.floor(Date.now() / 1000);
+  const age = Math.abs(now - parsed.timestamp);
+  if (age > toleranceSeconds) return false;
+
+  // Compute expected signature
+  const signedPayload = `${parsed.timestamp}.${payload}`;
+  const expected = createHmac("sha256", secret)
+    .update(signedPayload)
+    .digest("hex");
+
+  // Timing-safe comparison
+  const expectedBuffer = Buffer.from(expected, "hex");
+  const incomingBuffer = Buffer.from(parsed.signature, "hex");
+  
+  if (expectedBuffer.length !== incomingBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBuffer, incomingBuffer);
+}
+
+export default async function handler(req: Request) {
+  const signature = req.headers.get(RELIO_SIGNATURE_HEADER);
+  const event = req.headers.get(RELIO_EVENT_HEADER);
+  const webhookId = req.headers.get(RELIO_WEBHOOK_ID_HEADER);
+  
+  const payload = await req.text();
+  
+  // Verify signature
+  const isValid = verifyWebhookSignature({
+    secret: process.env.RELIO_WEBHOOK_SECRET!,
+    payload,
+    signatureHeader: signature!,
+  });
+
+  if (!isValid) {
+    return new Response("Invalid signature", { status: 401 });
+  }
+
+  // Process the webhook
+  const data = JSON.parse(payload);
+  console.log(`Received ${event} webhook:`, data);
+
+  // Handle the event
+  switch (event) {
+    case "contact.created":
+      await handleContactCreated(data.data);
+      break;
+    case "deal.updated":
+      await handleDealUpdated(data.data);
+      break;
+    // ... handle other events
+  }
+
+  return new Response("OK", { status: 200 });
+}
+```
+
+### Python Implementation
+
+```python
+import hmac
+import hashlib
+import time
+from typing import Dict, Optional
+
+def parse_signature_header(signature_header: str) -> Optional[Dict[str, any]]:
+    parts = [p.strip() for p in signature_header.split(",")]
+    timestamp = None
+    signature = None
+    
+    for part in parts:
+        key, value = part.split("=")
+        if key == "t":
+            timestamp = int(value)
+        elif key == "v1":
+            signature = value
+    
+    if not timestamp or not signature:
+        return None
+    
+    return {"timestamp": timestamp, "signature": signature}
+
+def verify_webhook_signature(
+    secret: str,
+    payload: str,
+    signature_header: str,
+    tolerance_seconds: int = 300
+) -> bool:
+    parsed = parse_signature_header(signature_header)
+    if not parsed:
+        return False
+    
+    # Check timestamp tolerance
+    now = int(time.time())
+    age = abs(now - parsed["timestamp"])
+    if age > tolerance_seconds:
+        return False
+    
+    # Compute expected signature
+    signed_payload = f"{parsed['timestamp']}.{payload}"
+    expected = hmac.new(
+        secret.encode(),
+        signed_payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    # Timing-safe comparison
+    return hmac.compare_digest(expected, parsed["signature"])
+
+# Flask example
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route("/webhooks/relio", methods=["POST"])
+def handle_relio_webhook():
+    signature = request.headers.get("x-relio-signature")
+    event = request.headers.get("x-relio-event")
+    payload = request.get_data(as_text=True)
+    
+    # Verify signature
+    if not verify_webhook_signature(
+        secret=os.environ["RELIO_WEBHOOK_SECRET"],
+        payload=payload,
+        signature_header=signature
+    ):
+        return "Invalid signature", 401
+    
+    # Process webhook
+    data = request.json
+    print(f"Received {event} webhook:", data)
+    
+    # Handle events
+    if event == "contact.created":
+        handle_contact_created(data["data"])
+    elif event == "deal.updated":
+        handle_deal_updated(data["data"])
+    
+    return "OK", 200
+```
+
+## Managing Webhooks
+
+### List Webhooks
+
+```typescript
+const webhooks = await trpc.workspace.webhooks.list.query();
+
+webhooks.forEach(webhook => {
+  console.log(`Webhook ${webhook.id}:`);
+  console.log(`  URL: ${webhook.targetUrl}`);
+  console.log(`  Events: ${webhook.events.join(", ")}`);
+  console.log(`  Active: ${webhook.isActive}`);
+  console.log(`  Last triggered: ${webhook.lastTriggeredAt}`);
+  console.log(`  Created by: ${webhook.createdByLabel}`);
+});
+```
+
+### Update Webhook
+
+```typescript
+// Update target URL or events
+await trpc.workspace.webhooks.update.mutate({
+  webhookId: "clx1234567890",
+  targetUrl: "https://new-domain.com/webhooks/relio",
+  events: ["contact.created", "contact.updated"],
+});
+
+// Disable webhook temporarily
+await trpc.workspace.webhooks.update.mutate({
+  webhookId: "clx1234567890",
+  isActive: false,
+});
+```
+
+### Delete Webhook
+
+```typescript
+await trpc.workspace.webhooks.delete.mutate({
+  webhookId: "clx1234567890",
+});
+```
+
+### Get Available Events
+
+```typescript
+const events = await trpc.workspace.webhooks.events.query();
+console.log("Available webhook events:", events);
+// ["contact.created", "contact.updated", ...]
+```
+
+## Best Practices
+
+### Endpoint Implementation
+
+<AccordionGroup>
+  <Accordion title="Return 200 Quickly">
+    Your webhook endpoint should respond with a 200 status code as quickly as possible. Process webhook events asynchronously using a queue:
+    
+    ```typescript
+    export default async function handler(req: Request) {
+      // Verify signature
+      const isValid = verifyWebhookSignature(...);
+      if (!isValid) return new Response("Invalid", { status: 401 });
+      
+      // Add to queue for async processing
+      await queue.add("process-webhook", {
+        event: req.headers.get("x-relio-event"),
+        payload: await req.text(),
+      });
+      
+      // Return immediately
+      return new Response("OK", { status: 200 });
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Implement Idempotency">
+    Webhooks may be delivered more than once. Use the webhook ID and event timestamp to ensure idempotent processing:
+    
+    ```typescript
+    async function processWebhook(data: any) {
+      const eventKey = `${data.webhookId}:${data.timestamp}`;
+      
+      // Check if already processed
+      const exists = await redis.get(`webhook:${eventKey}`);
+      if (exists) {
+        console.log("Webhook already processed");
+        return;
+      }
+      
+      // Process webhook
+      await handleEvent(data);
+      
+      // Mark as processed (24 hour TTL)
+      await redis.setex(`webhook:${eventKey}`, 86400, "1");
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle Failures Gracefully">
+    If your endpoint returns a non-200 status code or times out, Relio will retry the webhook with exponential backoff. Ensure your endpoint can handle retries:
+    
+    - Use idempotency keys
+    - Log failures for debugging
+    - Monitor webhook delivery success rates
+    - Consider implementing a dead letter queue
+  </Accordion>
+  
+  <Accordion title="Use HTTPS">
+    Always use HTTPS endpoints for webhook delivery. Relio may reject HTTP URLs in production environments.
+  </Accordion>
+  
+  <Accordion title="Monitor Performance">
+    Track webhook delivery metrics:
+    - Delivery success rate
+    - Processing time
+    - Error rates by event type
+    - Signature verification failures
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+### Signature Verification Fails
+
+1. Ensure you're using the raw request body (not parsed JSON)
+2. Check that your secret matches the webhook secret
+3. Verify timestamp tolerance (default: 5 minutes)
+4. Make sure you're using the correct signature format
+
+### Webhooks Not Received
+
+1. Check that webhook is active: `isActive: true`
+2. Verify your endpoint is publicly accessible
+3. Check firewall and network settings
+4. Review webhook event subscriptions
+5. Check the `lastTriggeredAt` timestamp
+
+### Duplicate Webhooks
+
+1. Implement idempotency using webhook ID and timestamp
+2. Check that your endpoint returns 200 status quickly
+3. Ensure your endpoint doesn't timeout
+
+## Security Considerations
+
+<Warning>
+  Never skip signature verification in production environments.
+</Warning>
+
+- Store webhook secrets in environment variables or secure vaults
+- Always verify signatures before processing webhooks
+- Use HTTPS endpoints only
+- Implement rate limiting to prevent abuse
+- Monitor for suspicious patterns
+- Rotate webhook secrets periodically
+- Log all webhook deliveries for audit purposes

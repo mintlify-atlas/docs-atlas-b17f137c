@@ -1,0 +1,449 @@
+---
+title: "Deals"
+description: "Track opportunities and manage your sales pipeline"
+icon: "handshake"
+---
+
+## Overview
+
+Deals represent opportunities in your sales pipeline - property sales, acquisitions, leases, partnerships, or any transaction you're working on. Relio's deal management helps you track progress, forecast revenue, and close more deals.
+
+## Creating Deals
+
+<Steps>
+  <Step title="Navigate to Deals">
+    Click "Deals" in the main navigation
+  </Step>
+  
+  <Step title="Create New Deal">
+    Click "+ New Deal" in the top right
+  </Step>
+  
+  <Step title="Enter Deal Details">
+    Name the deal and set the initial stage
+  </Step>
+  
+  <Step title="Link Records">
+    Optionally link to a contact, property, or company
+  </Step>
+  
+  <Step title="Add Financial Info">
+    Set deal value, probability, and expected close date
+  </Step>
+</Steps>
+
+## Deal Fields
+
+### Basic Information
+
+- **Name**: Descriptive deal name (e.g., "123 Main St Acquisition")
+- **Emoji**: Optional emoji for visual identification
+- **Description**: Deal notes and context
+- **Owner**: Team member responsible for the deal
+
+### Pipeline & Stage
+
+Deals move through customizable pipeline stages:
+
+```typescript
+{
+  pipelineId: "default_pipeline",
+  stageId: "qualification",
+  stageEnteredAt: "2024-03-13T10:30:00Z",
+  stage: "qualification"  // Legacy field, migrating to dynamic stages
+}
+```
+
+<Note>
+  Relio supports custom pipelines with dynamic stages. Each workspace has a default pipeline that you can customize.
+</Note>
+
+### Financial Details
+
+<CardGroup cols={2}>
+  <Card title="Deal Value" icon="dollar-sign">
+    Total deal value in cents (e.g., $1,250,000)
+  </Card>
+  <Card title="Probability" icon="percent">
+    Win probability 0-100% for weighted forecasting
+  </Card>
+  <Card title="Expected Close" icon="calendar">
+    Target close date for pipeline forecasting
+  </Card>
+  <Card title="Closed Date" icon="calendar-check">
+    Actual close date when deal is won or lost
+  </Card>
+</CardGroup>
+
+### Linked Records
+
+Connect deals to related entities:
+
+- **Contact**: Primary contact or decision maker
+- **Property**: Property being transacted
+- **Company**: Organization involved in the deal
+
+Linked records appear on the deal detail page and vice versa.
+
+## Deal Pipelines
+
+### Default Pipeline
+
+Each workspace has a default sales pipeline with stages:
+
+1. **Qualification** (active): Initial opportunity assessment
+2. **Proposal** (active): Preparing and presenting offers
+3. **Negotiation** (active): Discussing terms and conditions
+4. **Closing** (active): Final paperwork and closing process
+5. **Won** (won): Deal successfully closed
+6. **Lost** (lost): Deal fell through or lost to competitor
+
+### Stage Types
+
+- **Active**: Deal is in progress
+- **Won**: Deal closed successfully
+- **Lost**: Deal did not close
+
+Stage type determines:
+- Whether `closedAt` is set automatically
+- Inclusion in active deal metrics
+- Win/loss rate calculations
+
+### Custom Pipelines
+
+Create custom pipelines for different deal types:
+
+- Sales pipeline for property sales
+- Acquisition pipeline for buying properties
+- Leasing pipeline for tenant deals
+- Partnership pipeline for business development
+
+Each pipeline can have custom stages, colors, and progression logic.
+
+<Tip>
+  Contact your workspace admin to create custom pipelines for your team's workflow.
+</Tip>
+
+## Pipeline View
+
+Visualize your deals in a Kanban board:
+
+```typescript
+const pipeline = await trpc.deals.pipeline.query();
+
+// Returns deals grouped by stage:
+{
+  pipelineId: "pipeline_abc",
+  pipelineName: "Sales Pipeline",
+  stages: [
+    {
+      stage: "stage_123",
+      stageName: "Qualification",
+      stageType: "active",
+      stageColor: "#3B82F6",
+      stagePosition: 0,
+      deals: [...],  // Deals in this stage
+      count: 12,
+      totalValue: 5000000
+    },
+    // ... more stages
+  ]
+}
+```
+
+The pipeline view shows:
+- All deals organized by stage
+- Deal count and total value per stage
+- Contact, property, and owner information
+- Drag-and-drop to move deals between stages
+
+## Deal Analytics
+
+Track pipeline health and performance:
+
+```typescript
+const analytics = await trpc.deals.analytics.query();
+
+// Returns comprehensive metrics:
+{
+  totalDeals: 48,
+  activeDeals: 32,
+  totalValue: 25000000,
+  weightedValue: 12500000,  // Sum of (value * probability)
+  avgDaysToClose: 45,
+  winRate: 65,              // Percentage of won deals
+  lossRate: 35,             // Percentage of lost deals
+  stalledDeals: 5,          // Deals inactive for 30+ days
+  stages: [
+    {
+      id: "stage_123",
+      name: "Qualification",
+      type: "active",
+      count: 12,
+      value: 8000000,
+      weightedValue: 4000000,
+      avgDaysInStage: 14
+    },
+    // ... more stages
+  ]
+}
+```
+
+Use analytics for:
+- Revenue forecasting
+- Team performance tracking
+- Pipeline bottleneck identification
+- Sales process optimization
+
+## Deal Permissions
+
+Control who can view and edit deals:
+
+### Visibility Settings
+
+- **Private**: Only the deal owner and admins can see it
+- **Workspace**: All workspace members can see it
+- **Selected Users**: Specific users you choose
+
+### Access Levels
+
+For selected users:
+
+- **View**: Can see deal details but not edit
+- **Full Access**: Can view and edit deal details
+- **No Access**: Cannot see the deal
+
+### Managing Permissions
+
+<Steps>
+  <Step title="Open Deal">
+    Navigate to the deal detail page
+  </Step>
+  
+  <Step title="Click Share">
+    Click the "Share" button in the header
+  </Step>
+  
+  <Step title="Set Visibility">
+    Choose visibility level (private, workspace, or selected users)
+  </Step>
+  
+  <Step title="Add Users">
+    If using selected users, add team members and set their access level
+  </Step>
+</Steps>
+
+<Note>
+  Deal owners and workspace admins can always view and edit all deals, regardless of permissions.
+</Note>
+
+## Deal Activities
+
+Track all interactions and updates on a deal:
+
+- Notes and updates
+- Status changes
+- Stage movements
+- Linked activities (calls, meetings, emails)
+- System events (creation, updates)
+
+The deal timeline shows a complete history of all deal activity.
+
+## Working with Deals
+
+### Moving Through Stages
+
+Update deal stage as progress happens:
+
+```typescript
+await trpc.deals.update.mutate({
+  id: "deal_id",
+  stageId: "negotiation_stage_id"
+});
+```
+
+When you move a deal:
+- `stageEnteredAt` is automatically updated
+- If moved to won/lost stage, `closedAt` is set
+- Activity log records the stage change
+
+### Updating Probability
+
+Adjust win probability as deal progresses:
+
+```typescript
+await trpc.deals.update.mutate({
+  id: "deal_id",
+  probability: 75  // 75% likely to close
+});
+```
+
+Higher probability deals contribute more to weighted pipeline value.
+
+### Expected Close Date
+
+Set or update target close date:
+
+```typescript
+await trpc.deals.update.mutate({
+  id: "deal_id",
+  expectedCloseDate: new Date("2024-06-30")
+});
+```
+
+Use expected close dates for:
+- Revenue forecasting by period
+- Prioritizing urgent deals
+- Capacity planning
+- Commission projections
+
+## Filtering and Search
+
+### Filter Options
+
+Filter deals by:
+
+- **Search**: Deal name
+- **Stage**: Current pipeline stage
+- **Pipeline**: Specific pipeline
+- **Contact**: Linked contact
+- **Property**: Linked property
+- **Company**: Linked company
+- **Owner**: Deal owner
+- **Tags**: Custom tags
+- **List**: Deal list membership
+
+### Sorting
+
+Sort deals by:
+
+- Name (A-Z)
+- Stage
+- Value (high to low)
+- Created date
+- Expected close date
+
+## Aggregations
+
+Analyze deal data with aggregations:
+
+```typescript
+const stats = await trpc.deals.aggregations.query({
+  stageId: "qualification",
+  aggregations: [
+    { column: "value", aggregate: "sum" },
+    { column: "value", aggregate: "avg" },
+    { column: "probability", aggregate: "avg" },
+    { column: "stage", aggregate: "count" }
+  ]
+});
+```
+
+Use aggregations for:
+- Pipeline value calculations
+- Average deal size
+- Stage conversion analysis
+- Custom reporting
+
+## Deal Lists
+
+Organize deals into lists:
+
+- Hot deals requiring immediate attention
+- Q1 closing targets
+- Enterprise deals
+- Partner opportunities
+
+Lists help with:
+- Focus and prioritization
+- Team assignments
+- Reporting and forecasting
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Deal Hygiene">
+    - Update deal stages promptly as progress happens
+    - Keep probability realistic based on actual progress
+    - Link all relevant contacts, properties, and companies
+    - Log activities regularly to maintain context
+    - Archive or close lost deals to keep pipeline clean
+  </Accordion>
+  
+  <Accordion title="Pipeline Management">
+    - Review pipeline weekly with your team
+    - Identify and address stalled deals
+    - Use weighted value for revenue forecasting
+    - Track win/loss reasons to improve process
+    - Set realistic expected close dates
+  </Accordion>
+  
+  <Accordion title="Team Collaboration">
+    - Use appropriate visibility settings
+    - Grant access to stakeholders who need it
+    - Add notes visible to the team
+    - Set reminders for follow-ups
+    - Celebrate wins with the team
+  </Accordion>
+  
+  <Accordion title="Analytics & Reporting">
+    - Monitor win rates by stage
+    - Track average time in each stage
+    - Identify bottlenecks in your process
+    - Forecast revenue using weighted values
+    - Compare actual vs. expected close dates
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+Key deal operations:
+
+```typescript
+// List deals
+const { items, total } = await trpc.deals.list.query({
+  limit: 50,
+  offset: 0,
+  stageId: "qualification",
+  ownerId: "user_id",
+  sortField: "expectedCloseDate",
+  sortDirection: "asc"
+});
+
+// Get pipeline view
+const pipeline = await trpc.deals.pipeline.query();
+
+// Get analytics
+const analytics = await trpc.deals.analytics.query();
+
+// Get single deal
+const deal = await trpc.deals.getById.query("deal_id");
+
+// Create deal
+const newDeal = await trpc.deals.create.mutate({
+  name: "123 Main St Acquisition",
+  stageId: "qualification",
+  value: 1250000,
+  probability: 50,
+  expectedCloseDate: new Date("2024-06-30"),
+  contactId: "contact_id",
+  propertyId: "property_id"
+});
+
+// Update deal
+const updated = await trpc.deals.update.mutate({
+  id: "deal_id",
+  stageId: "negotiation",
+  probability: 75
+});
+
+// Manage permissions
+await trpc.deals.updateShares.mutate({
+  dealId: "deal_id",
+  visibility: "selected_users",
+  shares: [
+    { userId: "user_1", accessLevel: "full_access" },
+    { userId: "user_2", accessLevel: "view" }
+  ]
+});
+```

@@ -1,0 +1,477 @@
+---
+title: Pipelines
+description: Configure and manage deal pipelines and stages for your sales process
+icon: arrow-progress
+---
+
+## Overview
+
+Pipelines help you visualize and manage deals through your sales process. Relio supports multiple pipelines with customizable stages, allowing you to track different types of transactions.
+
+<Info>
+Creating, editing, and deleting pipelines requires **admin** or **owner** permissions. All users can view pipelines and move deals between stages.
+</Info>
+
+## Pipeline Structure
+
+A pipeline consists of:
+- **Pipeline**: The overall workflow (e.g., "Sales Pipeline", "Leasing Pipeline")
+- **Stages**: Individual steps within the pipeline (e.g., "Qualification", "LOI", "Due Diligence")
+- **Stage Types**: Classification of stages as `active`, `won`, or `lost`
+
+## Default CRE Pipeline
+
+When you create a workspace, Relio automatically generates a default Commercial Real Estate (CRE) pipeline:
+
+| Stage | Type | Color | Position |
+|-------|------|-------|----------|
+| Canvassing | Active | Indigo (#6366F1) | 0 |
+| Qualification | Active | Blue (#3B82F6) | 1 |
+| LOI | Active | Amber (#F59E0B) | 2 |
+| Due Diligence | Active | Emerald (#10B981) | 3 |
+| Closed Won | Won | Green (#22C55E) | 4 |
+| Closed Lost | Lost | Red (#EF4444) | 5 |
+
+<Note>
+The default pipeline is automatically marked as the workspace default. You can change which pipeline is default at any time.
+</Note>
+
+## Stage Types
+
+Stages are classified into three types:
+
+### Active
+Represents deals currently in progress. These stages indicate ongoing opportunities.
+
+**Examples:**
+- Canvassing
+- Qualification
+- Proposal
+- Negotiation
+- Due Diligence
+
+### Won
+Indicates successfully closed deals. Used for reporting and win-rate calculations.
+
+**Examples:**
+- Closed Won
+- Contract Signed
+- Deal Complete
+
+### Lost
+Represents deals that did not close. Helps track lost reasons and improve conversion.
+
+**Examples:**
+- Closed Lost
+- Disqualified
+- Not Interested
+
+## Creating Pipelines
+
+<Steps>
+  <Step title="Navigate to pipeline settings">
+    From workspace settings, click "Pipelines" in the admin section.
+  </Step>
+  
+  <Step title="Click 'Create Pipeline'">
+    Click the "New Pipeline" button.
+  </Step>
+  
+  <Step title="Name your pipeline">
+    Enter a descriptive name (e.g., "Leasing Pipeline", "Acquisition Pipeline").
+  </Step>
+  
+  <Step title="Add stages">
+    Define at least one stage for your pipeline:
+    - **Stage Name**: Display name (e.g., "Prospecting")
+    - **Stage Type**: Choose active, won, or lost
+    - **Color**: Pick a hex color for visual distinction (e.g., `#3B82F6`)
+    
+    Stages are automatically positioned in the order you create them.
+  </Step>
+  
+  <Step title="Save pipeline">
+    Click "Create" to save the new pipeline and stages.
+  </Step>
+</Steps>
+
+### Pipeline Creation API
+
+```typescript
+await api.pipelines.create.mutate({
+  name: "Leasing Pipeline",
+  stages: [
+    { name: "Lead", type: "active", color: "#6366F1" },
+    { name: "Showing Scheduled", type: "active", color: "#3B82F6" },
+    { name: "Application Submitted", type: "active", color: "#F59E0B" },
+    { name: "Lease Signed", type: "won", color: "#22C55E" },
+    { name: "No Lease", type: "lost", color: "#EF4444" }
+  ]
+});
+```
+
+## Managing Pipelines
+
+### Update Pipeline Name
+
+You can rename a pipeline without affecting its stages:
+
+```typescript
+await api.pipelines.update.mutate({
+  id: "pipe_123...",
+  name: "Updated Pipeline Name"
+});
+```
+
+### Set Default Pipeline
+
+Mark a pipeline as the workspace default:
+
+<Steps>
+  <Step title="Locate the pipeline">
+    Find the pipeline in the list.
+  </Step>
+  
+  <Step title="Click 'Set as Default'">
+    Click the button to mark this pipeline as default.
+  </Step>
+  
+  <Step title="Confirmation">
+    The previous default pipeline will be unmarked automatically.
+  </Step>
+</Steps>
+
+```typescript
+// Set a pipeline as default (undefaults all others)
+await api.pipelines.setDefault.mutate("pipe_123...");
+```
+
+<Info>
+The default pipeline is used when creating new deals if no pipeline is specified.
+</Info>
+
+### Delete Pipeline
+
+<Warning>
+Deleting a pipeline does **not** delete the deals in that pipeline. Deals will have their `pipelineId` and `stageId` set to `null`.
+</Warning>
+
+<Steps>
+  <Step title="Verify not default">
+    You cannot delete the default pipeline. Set a different pipeline as default first.
+  </Step>
+  
+  <Step title="Click 'Delete Pipeline'">
+    Find the pipeline and click the delete button.
+  </Step>
+  
+  <Step title="Confirm deletion">
+    Review the warning about deals being unlinked from the pipeline.
+  </Step>
+  
+  <Step title="Pipeline removed">
+    The pipeline and its stages are deleted. Deals remain but are no longer assigned to stages.
+  </Step>
+</Steps>
+
+```typescript
+await api.pipelines.delete.mutate("pipe_123...");
+```
+
+## Managing Stages
+
+### Add Stage
+
+<Steps>
+  <Step title="Select a pipeline">
+    Navigate to the pipeline you want to modify.
+  </Step>
+  
+  <Step title="Click 'Add Stage'">
+    Click the button to create a new stage.
+  </Step>
+  
+  <Step title="Configure stage">
+    Fill in:
+    - **Name**: Stage display name
+    - **Type**: active, won, or lost
+    - **Color**: Hex color code (e.g., `#3B82F6`)
+    - **Position**: Optional. If omitted, appends to the end
+  </Step>
+  
+  <Step title="Save stage">
+    The new stage appears in the pipeline immediately.
+  </Step>
+</Steps>
+
+```typescript
+await api.pipelines.createStage.mutate({
+  pipelineId: "pipe_123...",
+  name: "Contract Review",
+  type: "active",
+  color: "#8B5CF6",
+  position: 3  // Insert at specific position (optional)
+});
+```
+
+### Update Stage
+
+Modify an existing stage's properties:
+
+```typescript
+await api.pipelines.updateStage.mutate({
+  id: "stage_456...",
+  name: "Updated Stage Name",
+  type: "won",           // Optional
+  color: "#22C55E"       // Optional
+});
+```
+
+<Note>
+Updating a stage's type (e.g., from active to won) may affect reporting and analytics. Existing deals in that stage are not automatically moved.
+</Note>
+
+### Reorder Stages
+
+Change the order of stages within a pipeline:
+
+```typescript
+// Pass the stage IDs in the desired order
+await api.pipelines.reorderStages.mutate({
+  pipelineId: "pipe_123...",
+  stageIds: ["stage_1", "stage_3", "stage_2", "stage_4"]
+});
+```
+
+In the UI:
+1. Click and drag stages to reorder them
+2. The position updates automatically
+3. Deals remain in their assigned stages
+
+### Delete Stage
+
+<Warning>
+Deleting a stage sets all deals currently in that stage to `stageId: null`. The deals remain in the pipeline but are no longer assigned to a specific stage.
+</Warning>
+
+<Steps>
+  <Step title="Locate the stage">
+    Find the stage you want to delete.
+  </Step>
+  
+  <Step title="Click 'Delete Stage'">
+    Click the delete icon.
+  </Step>
+  
+  <Step title="Review impact">
+    Confirm that you understand deals in this stage will be unassigned.
+  </Step>
+  
+  <Step title="Stage removed">
+    The stage is deleted and deals are updated.
+  </Step>
+</Steps>
+
+```typescript
+await api.pipelines.deleteStage.mutate("stage_456...");
+```
+
+## Using Pipelines
+
+### View All Pipelines
+
+```typescript
+// Get all pipelines with stages
+const pipelines = await api.pipelines.list.query();
+
+// Returns:
+// [
+//   {
+//     id: "pipe_123...",
+//     name: "Deal Pipeline",
+//     isDefault: true,
+//     createdAt: "2024-01-15T10:00:00Z",
+//     stages: [
+//       { id: "stage_1", name: "Canvassing", type: "active", color: "#6366F1", position: 0 },
+//       ...
+//     ]
+//   },
+//   ...
+// ]
+```
+
+### Get Default Pipeline
+
+```typescript
+// Get the workspace's default pipeline
+const defaultPipeline = await api.pipelines.getDefault.query();
+```
+
+### Get Specific Pipeline
+
+```typescript
+// Get a pipeline by ID
+const pipeline = await api.pipelines.getById.query("pipe_123...");
+```
+
+## Color Guidelines
+
+Choose colors that align with stage meaning:
+
+| Stage Type | Recommended Colors | Hex Examples |
+|------------|-------------------|-------------|
+| Early stages | Blue, Indigo, Purple | `#3B82F6`, `#6366F1`, `#8B5CF6` |
+| Mid stages | Amber, Orange, Teal | `#F59E0B`, `#F97316`, `#14B8A6` |
+| Late active | Green, Emerald | `#10B981`, `#22C55E` |
+| Won | Green | `#22C55E`, `#16A34A` |
+| Lost | Red | `#EF4444`, `#DC2626` |
+
+<Info>
+Colors are stored as 6-digit hex codes (e.g., `#3B82F6`). The UI validates that colors match the format `^#[0-9A-Fa-f]{6}$`.
+</Info>
+
+## Database Schema
+
+### Deal Pipelines Table
+
+```typescript
+interface DealPipeline {
+  id: string;
+  workspaceId: string;
+  name: string;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### Deal Pipeline Stages Table
+
+```typescript
+interface DealPipelineStage {
+  id: string;
+  pipelineId: string;
+  name: string;
+  type: "active" | "won" | "lost";
+  color: string;        // Hex format: #RRGGBB
+  position: number;     // 0-indexed sort order
+}
+```
+
+## Best Practices
+
+### Pipeline Design
+
+1. **Keep it simple**: 4-8 stages is ideal for most pipelines
+2. **Use clear names**: Stage names should be immediately understandable
+3. **Align with process**: Stages should match your actual sales process
+4. **Include won/lost**: Always have at least one won and one lost stage
+5. **Don't over-engineer**: Start simple and add complexity only if needed
+
+### Stage Configuration
+
+1. **Consistent types**: Group similar activities in active stages
+2. **Logical order**: Arrange stages in chronological order
+3. **Color consistency**: Use consistent color schemes across pipelines
+4. **Unique names**: Avoid duplicate stage names within a pipeline
+5. **Document criteria**: Define what qualifies a deal for each stage
+
+### Multiple Pipelines
+
+1. **Purpose-driven**: Create pipelines for distinct transaction types
+2. **Examples**:
+   - Sales Pipeline (buy/sell transactions)
+   - Leasing Pipeline (rental transactions)
+   - Acquisition Pipeline (portfolio expansion)
+3. **Set default**: Make your most common pipeline the default
+4. **Limit quantity**: Don't create too many pipelines (3-5 maximum)
+
+### Maintenance
+
+1. **Regular reviews**: Quarterly review of pipeline effectiveness
+2. **Archive unused**: Delete pipelines that are no longer used
+3. **Update as needed**: Adjust stages when your process changes
+4. **Train team**: Ensure everyone understands pipeline usage
+5. **Monitor metrics**: Track conversion rates between stages
+
+## Common Pipeline Examples
+
+### Residential Sales
+
+```typescript
+Stages:
+- Lead (active)
+- Showing Scheduled (active)
+- Offer Submitted (active)
+- Under Contract (active)
+- Inspection Period (active)
+- Closed Won (won)
+- Not Interested (lost)
+```
+
+### Commercial Leasing
+
+```typescript
+Stages:
+- Inquiry (active)
+- Tour Scheduled (active)
+- Proposal Sent (active)
+- Negotiation (active)
+- Lease Signed (won)
+- Lost to Competitor (lost)
+```
+
+### Property Acquisition
+
+```typescript
+Stages:
+- Sourcing (active)
+- Initial Analysis (active)
+- LOI Submitted (active)
+- Due Diligence (active)
+- Closing (active)
+- Acquired (won)
+- Passed (lost)
+```
+
+## Troubleshooting
+
+### Cannot Delete Default Pipeline
+
+- **Issue**: Delete button is disabled for the default pipeline
+- **Solution**: Set a different pipeline as default first
+
+### Stages Out of Order
+
+- **Issue**: Stages appear in wrong order
+- **Solution**: Use the reorder function or update position values
+
+### Color Not Displaying
+
+- **Issue**: Stage color doesn't appear in the UI
+- **Solution**: Verify the color is a valid 6-digit hex code (e.g., `#3B82F6`)
+
+### Deals Lost When Deleting
+
+- **Issue**: Worried about losing deals when deleting pipeline/stage
+- **Solution**: Deals are never deleted. They're just unlinked from the pipeline/stage.
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Deals" icon="handshake" href="/features/deals">
+    Learn about creating and managing deals
+  </Card>
+  
+  <Card title="Custom Fields" icon="input-text" href="/admin/custom-fields">
+    Add custom fields to track deal-specific data
+  </Card>
+  
+  <Card title="User Management" icon="users" href="/admin/user-management">
+    Manage team members and permissions
+  </Card>
+  
+  <Card title="Workspace Settings" icon="gear" href="/admin/workspace-settings">
+    Configure workspace settings
+  </Card>
+</CardGroup>

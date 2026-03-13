@@ -1,0 +1,477 @@
+---
+title: "Activities"
+description: "Track interactions, notes, tasks, and communication history"
+icon: "list-check"
+---
+
+## Overview
+
+Activities are the foundation of relationship management in Relio. Every call, meeting, note, email, or task is logged as an activity, creating a complete timeline of interactions with contacts, properties, companies, and deals.
+
+## Activity Types
+
+Relio supports multiple activity types:
+
+<CardGroup cols={2}>
+  <Card title="Note" icon="note-sticky">
+    General notes and observations
+  </Card>
+  <Card title="Call" icon="phone">
+    Phone calls and conversations
+  </Card>
+  <Card title="Meeting" icon="calendar">
+    In-person or virtual meetings
+  </Card>
+  <Card title="Email" icon="envelope">
+    Email communications
+  </Card>
+  <Card title="Task" icon="list-check">
+    Action items and to-dos
+  </Card>
+  <Card title="Tour" icon="building">
+    Property tours and showings
+  </Card>
+  <Card title="System" icon="gear">
+    Automated system events
+  </Card>
+  <Card title="Other" icon="ellipsis">
+    Other interaction types
+  </Card>
+</CardGroup>
+
+## Creating Activities
+
+<Steps>
+  <Step title="Navigate to Record">
+    Open a contact, property, company, or deal
+  </Step>
+  
+  <Step title="Add Activity">
+    Click "+ Activity" in the timeline section
+  </Step>
+  
+  <Step title="Select Type">
+    Choose the activity type (note, call, meeting, etc.)
+  </Step>
+  
+  <Step title="Add Details">
+    Enter title, description, and optional due date
+  </Step>
+  
+  <Step title="Save">
+    Click "Save" to log the activity
+  </Step>
+</Steps>
+
+<Tip>
+  Use @ mentions in activity descriptions to notify team members and keep everyone informed.
+</Tip>
+
+## Activity Fields
+
+### Basic Information
+
+```typescript
+{
+  type: "meeting",
+  title: "Property Tour - 123 Main St",
+  body: "<p>Showed the property to @john-smith. Very interested, wants to submit offer.</p>",
+  userId: "user_abc",           // Activity creator
+  workspaceId: "workspace_xyz"
+}
+```
+
+### Linked Records
+
+Activities can be linked to one or more record types:
+
+- **Contact**: `contactId` - Link to a person
+- **Property**: `propertyId` - Link to a property
+- **Company**: `companyId` - Link to an organization
+- **Deal**: `dealId` - Link to a deal
+
+You can link an activity to multiple record types simultaneously (e.g., a meeting with a contact about a specific property).
+
+### Task Fields
+
+For task-type activities:
+
+- **Due At**: `dueAt` - When the task is due
+- **Completed At**: `completedAt` - When the task was completed
+
+### Metadata
+
+Store additional structured data:
+
+```typescript
+{
+  metadata: {
+    duration: 45,              // Meeting duration in minutes
+    location: "Property site",
+    outcome: "positive",
+    nextSteps: ["Send offer template", "Schedule follow-up"]
+  }
+}
+```
+
+## Activity Timeline
+
+Every contact, property, company, and deal has an activity timeline:
+
+### Timeline Display
+
+The timeline shows:
+- Activity type icon and color coding
+- Activity title and description
+- Creator name and avatar
+- Timestamp (with relative time)
+- Linked records
+- Reactions and replies
+- Resolved status (for threads)
+
+### Filtering Activities
+
+Filter the timeline by:
+
+- **Type**: Show only calls, meetings, notes, etc.
+- **Creator**: Filter by team member
+- **Date Range**: Show activities from a specific period
+- **Linked Records**: Show activities related to specific records
+
+### Activity Feed
+
+The workspace-wide activity feed shows all recent activities:
+
+```typescript
+const { items } = await trpc.activities.feed.query({
+  limit: 50,
+  type: "meeting"  // Optional filter
+});
+```
+
+The feed includes:
+- Activity details
+- Creator information
+- Linked contact, property, and company names
+- Quick links to related records
+
+## Collaboration Features
+
+### Mentions
+
+Mention team members in activity descriptions:
+
+```html
+<p>Met with @john-smith to discuss the property. 
+@jane-doe should follow up with the financing options.</p>
+```
+
+Mentioned users receive in-app notifications and can click through to the activity.
+
+### Reactions
+
+React to activities with emoji:
+
+```typescript
+// Add or remove reaction
+await trpc.activities.toggleReaction.mutate({
+  activityId: "activity_id",
+  emoji: "👍"
+});
+```
+
+Reactions show:
+- Emoji and count
+- List of users who reacted
+- Whether you've reacted
+
+### Replies
+
+Start threaded conversations on activities:
+
+```typescript
+await trpc.activities.createReply.mutate({
+  activityId: "activity_id",
+  body: "<p>Great update! Let's schedule a follow-up call.</p>"
+});
+```
+
+Replies support:
+- Rich text formatting
+- @ mentions
+- Nested conversations
+- Notifications to activity creator and mentioned users
+
+### Resolved Status
+
+Mark activity threads as resolved:
+
+```typescript
+await trpc.activities.update.mutate({
+  id: "activity_id",
+  resolved: true
+});
+```
+
+Resolved activities:
+- Show a resolved badge
+- Can be filtered out of the timeline
+- Track who resolved it and when
+- Can be re-opened if needed
+
+<Note>
+  Any team member can resolve an activity thread, not just the creator.
+</Note>
+
+## Task Management
+
+Activities with `type: "task"` are action items:
+
+### Creating Tasks
+
+```typescript
+await trpc.activities.create.mutate({
+  type: "task",
+  title: "Send follow-up email to buyer",
+  body: "<p>Include financing options and timeline</p>",
+  dueAt: new Date("2024-03-20T10:00:00Z"),
+  contactId: "contact_id"
+});
+```
+
+### Completing Tasks
+
+```typescript
+await trpc.activities.complete.mutate({
+  id: "activity_id"
+});
+```
+
+Completed tasks:
+- Show with strikethrough styling
+- Display completion timestamp
+- Remain in the timeline for reference
+
+### Task Views
+
+Relio provides dedicated task views:
+
+- **My Tasks**: Tasks assigned to you
+- **Team Tasks**: All workspace tasks
+- **Overdue**: Past-due tasks requiring attention
+- **This Week**: Tasks due in the next 7 days
+
+## System Activities
+
+Relio automatically creates system activities for:
+
+### Record Changes
+
+- Contact, property, company, or deal created
+- Record updated (with field change details)
+- Status changes (deal stage, property status)
+- Ownership assignments
+
+### Enrichment Events
+
+- Contact enriched from People Data Labs
+- Company enriched from Firecrawl
+- Property enriched from Regrid/Smarty
+
+### Relationship Events
+
+- Records linked together
+- Records added to lists
+- Tags applied
+
+System activities are marked with `type: "system"` and show automatically in timelines.
+
+## Connection Score Impact
+
+Activities directly influence contact connection scores:
+
+### High-Value Activities
+
+- Meetings (+10 points)
+- Calls (+8 points)
+- Property tours (+10 points)
+
+### Medium-Value Activities
+
+- Emails (+5 points)
+- Notes (+3 points)
+
+### Recency Bonus
+
+Recent activities boost scores more:
+- Last 7 days: Full points
+- Last 30 days: 80% of points
+- Last 90 days: 50% of points
+- Older: Minimal impact
+
+<Tip>
+  Log activities immediately after interactions to maintain accurate connection scores.
+</Tip>
+
+## Notifications
+
+Activities trigger notifications for:
+
+### Mentions
+
+When someone mentions you:
+- In-app notification
+- Email notification (if enabled)
+- Links directly to the activity
+
+### Replies
+
+When someone replies to your activity:
+- Notification to activity creator
+- Notification to mentioned users
+- Activity owner badge on original post
+
+### Reactions
+
+When someone reacts to your activity:
+- In-app notification
+- Shows who reacted and with what emoji
+
+## Real-Time Updates
+
+Activities broadcast updates in real-time using Supabase Realtime:
+
+```typescript
+// Activities are broadcast to workspace channel
+// Team members see new activities instantly without refreshing
+```
+
+Real-time features:
+- New activities appear immediately
+- Replies show up as they're posted
+- Reactions update live
+- Multiple users can collaborate simultaneously
+
+## Editing and Deleting
+
+### Editing Activities
+
+Activity creators can edit their posts:
+
+```typescript
+await trpc.activities.update.mutate({
+  id: "activity_id",
+  body: "<p>Updated description with more details</p>"
+});
+```
+
+<Warning>
+  Only the activity creator can edit the activity body. Any team member can resolve/unresolve.
+</Warning>
+
+### Deleting Activities
+
+Delete activities you created:
+
+```typescript
+await trpc.activities.delete.mutate({
+  id: "activity_id"
+});
+```
+
+Workspace admins can delete any activity.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Activity Logging">
+    - Log activities immediately after interactions
+    - Use descriptive titles that summarize the interaction
+    - Add context in the body for future reference
+    - Always link activities to relevant records
+    - Use appropriate activity types for better filtering
+  </Accordion>
+  
+  <Accordion title="Team Collaboration">
+    - @ mention team members who need to know
+    - Reply to activities instead of creating duplicates
+    - Use reactions for quick acknowledgments
+    - Resolve threads when issues are addressed
+    - Keep discussions in the appropriate activity thread
+  </Accordion>
+  
+  <Accordion title="Task Management">
+    - Set realistic due dates for tasks
+    - Complete tasks promptly to keep timeline accurate
+    - Break large tasks into smaller activities
+    - Review overdue tasks daily
+    - Use task lists for project organization
+  </Accordion>
+  
+  <Accordion title="Data Quality">
+    - Write clear, professional activity descriptions
+    - Include outcomes and next steps
+    - Link all relevant records (contacts, properties, etc.)
+    - Use metadata for structured information
+    - Keep personal notes in private activities if needed
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+Key activity operations:
+
+```typescript
+// List activities for a record
+const { items, nextCursor } = await trpc.activities.list.query({
+  contactId: "contact_id",
+  limit: 50,
+  type: "meeting"  // Optional filter
+});
+
+// Get workspace activity feed
+const { items } = await trpc.activities.feed.query({
+  limit: 50,
+  cursor: "cursor_string"  // For pagination
+});
+
+// Create activity
+const activity = await trpc.activities.create.mutate({
+  type: "meeting",
+  title: "Property Tour",
+  body: "<p>Showed the property to the buyer.</p>",
+  contactId: "contact_id",
+  propertyId: "property_id",
+  dueAt: new Date("2024-03-20T10:00:00Z")  // For tasks
+});
+
+// Update activity
+const updated = await trpc.activities.update.mutate({
+  id: "activity_id",
+  body: "<p>Updated description</p>",
+  resolved: true
+});
+
+// Complete task
+await trpc.activities.complete.mutate({
+  id: "activity_id"
+});
+
+// Add reply
+const reply = await trpc.activities.createReply.mutate({
+  activityId: "activity_id",
+  body: "<p>Great update!</p>"
+});
+
+// Toggle reaction
+const { action } = await trpc.activities.toggleReaction.mutate({
+  activityId: "activity_id",
+  emoji: "👍"
+});
+// action is "added" or "removed"
+
+// Delete activity
+await trpc.activities.delete.mutate({
+  id: "activity_id"
+});
+```

@@ -1,0 +1,462 @@
+---
+title: Authentication
+description: Authenticate the Relio CLI with your workspace
+---
+
+The Relio CLI uses a secure device flow authentication mechanism, similar to OAuth 2.0 device authorization. This allows you to authenticate safely without exposing credentials in the terminal.
+
+## Authentication Flow Overview
+
+The Relio CLI authentication process works as follows:
+
+<Steps>
+  <Step title="Initiate login">
+    Run `relio login` to start the authentication flow
+  </Step>
+  
+  <Step title="Receive verification URL">
+    The CLI generates a device code and displays a verification URL
+  </Step>
+  
+  <Step title="Approve in browser">
+    Open the URL in your browser and approve the CLI access request
+  </Step>
+  
+  <Step title="Receive API key">
+    After approval, the CLI receives a workspace API token and stores it locally
+  </Step>
+</Steps>
+
+## How It Works
+
+The authentication flow uses the tRPC API router at `/trpc/cliAuth` with the following procedures:
+
+1. **`cliAuth.start`** - Initiates a CLI login session and generates a device code
+2. **`cliAuth.poll`** - CLI polls for approval status every 2 seconds
+3. **`cliAuth.request`** - Browser fetches session details to display approval screen
+4. **`cliAuth.approve`** - User approves the request and an API key is issued
+
+<Info>
+The device code expires after 10 minutes (600 seconds) by default. You can customize this with the `--expires-in` option.
+</Info>
+
+## Login Command
+
+### Basic Usage
+
+Authenticate with the default server (localhost):
+
+```bash
+relio login
+```
+
+Output:
+
+```
+Starting CLI login against http://localhost:3000...
+
+Approve this request in your browser:
+http://localhost:3000/login?cli=1&device_code=a1b2c3d4e5f6...
+
+Opened browser for verification.
+Waiting for approval........
+CLI login approved.
+Profile: default
+Workspace: org_abc123xyz
+Saved credentials: /home/user/.config/relio/config.json
+```
+
+### Authentication Options
+
+<ParamField path="--server" type="string" default="http://localhost:3000">
+  Relio server URL to authenticate against
+  
+  ```bash
+  relio login --server https://app.relio.com
+  ```
+</ParamField>
+
+<ParamField path="--profile" type="string" default="default">
+  Profile name to save credentials under
+  
+  ```bash
+  relio login --profile production
+  ```
+</ParamField>
+
+<ParamField path="--client-name" type="string" default="Relio CLI">
+  Friendly name shown in the browser approval screen
+  
+  ```bash
+  relio login --client-name "CI/CD Pipeline"
+  ```
+</ParamField>
+
+<ParamField path="--token-name" type="string">
+  Custom name for the created workspace API key
+  
+  ```bash
+  relio login --token-name "Development Token"
+  ```
+</ParamField>
+
+<ParamField path="--expires-in" type="number" default="600">
+  Device code expiration in seconds (60-900)
+  
+  ```bash
+  relio login --expires-in 300
+  ```
+</ParamField>
+
+<ParamField path="--no-open" type="boolean">
+  Prevent automatic browser opening
+  
+  ```bash
+  relio login --no-open
+  ```
+</ParamField>
+
+### Environment-Specific Login
+
+Authenticate with different environments using profiles:
+
+<Tabs>
+  <Tab title="Development">
+    ```bash
+    relio login --profile dev --server http://localhost:3000
+    ```
+  </Tab>
+  
+  <Tab title="Staging">
+    ```bash
+    relio login --profile staging --server https://staging.relio.com
+    ```
+  </Tab>
+  
+  <Tab title="Production">
+    ```bash
+    relio login --profile prod --server https://app.relio.com
+    ```
+  </Tab>
+</Tabs>
+
+## Whoami Command
+
+Check your current authentication status and identity:
+
+```bash
+relio whoami
+```
+
+Output:
+
+```
+Profile: default
+Server: http://localhost:3000
+Auth: api_key
+User ID: user_abc123
+Workspace ID: org_xyz789
+API Token: Development Token (token_def456)
+```
+
+### Options
+
+<ParamField path="--profile" type="string">
+  Specify which profile to check (defaults to active profile)
+  
+  ```bash
+  relio whoami --profile production
+  ```
+</ParamField>
+
+<ParamField path="--server" type="string">
+  Override the server URL from the profile
+  
+  ```bash
+  relio whoami --server https://app.relio.com
+  ```
+</ParamField>
+
+## Testing Authentication
+
+Verify that your API key is valid and accepted by the server:
+
+```bash
+relio auth test
+```
+
+Output:
+
+```
+Auth test passed.
+Profile: default
+Server: http://localhost:3000
+Workspace ID: org_xyz789
+```
+
+<Check>
+This command confirms that the server successfully authenticated your API key.
+</Check>
+
+### Options
+
+<ParamField path="--profile" type="string">
+  Test a specific profile's credentials
+  
+  ```bash
+  relio auth test --profile staging
+  ```
+</ParamField>
+
+## Managing Multiple Profiles
+
+Profiles allow you to manage multiple sets of credentials for different workspaces or environments.
+
+### List Profiles
+
+View all configured profiles:
+
+```bash
+relio profiles list
+```
+
+Output:
+
+```
+* default  http://localhost:3000
+  staging  https://staging.relio.com
+  prod     https://app.relio.com
+```
+
+The asterisk (*) indicates the active profile.
+
+### Switch Profiles
+
+Change the active profile:
+
+```bash
+relio profiles use staging
+```
+
+Output:
+
+```
+Active profile set to "staging". (/home/user/.config/relio/config.json)
+```
+
+## Logout Command
+
+Remove stored credentials when you're done:
+
+### Remove Active Profile
+
+```bash
+relio logout
+```
+
+Output:
+
+```
+Removed profile "default". (/home/user/.config/relio/config.json)
+```
+
+### Remove Specific Profile
+
+```bash
+relio logout --profile staging
+```
+
+### Remove All Profiles
+
+```bash
+relio logout --all
+```
+
+Output:
+
+```
+Removed all profiles. (/home/user/.config/relio/config.json)
+```
+
+<Warning>
+Logging out removes the API key from your local configuration but does not revoke the token on the server. To fully revoke access, delete the API token from your workspace settings.
+</Warning>
+
+## API Connection Details
+
+The CLI connects to the Relio API using tRPC over HTTP:
+
+- **Protocol**: HTTP POST requests
+- **Endpoint**: `{serverUrl}/trpc`
+- **Authentication**: Bearer token in `Authorization` header
+- **Format**: JSON-RPC batch requests
+
+### How the CLI Connects
+
+The CLI uses the `@trpc/client` library with the following configuration:
+
+```typescript
+createTRPCProxyClient({
+  links: [
+    httpBatchLink({
+      url: `${serverUrl}/trpc`,
+      methodOverride: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+    }),
+  ],
+})
+```
+
+## Security Considerations
+
+### API Key Storage
+
+API keys are stored in plaintext at `~/.config/relio/config.json`:
+
+```json
+{
+  "defaultProfile": "default",
+  "profiles": {
+    "default": {
+      "serverUrl": "http://localhost:3000",
+      "workspaceId": "org_abc123",
+      "apiKey": "relio_a1b2c3d4e5f6...",
+      "updatedAt": "2026-03-13T10:30:00.000Z"
+    }
+  }
+}
+```
+
+<Warning>
+**Important Security Notes:**
+- Protect your `config.json` file with appropriate file permissions
+- Never commit this file to version control
+- Treat API keys like passwords
+- Use different profiles for different environments
+- Rotate API keys regularly from your workspace settings
+</Warning>
+
+### Token Permissions
+
+API tokens created through CLI login have the following characteristics:
+
+- **Scope**: Limited to the workspace you select during approval
+- **Permissions**: Default workspace API token permissions
+- **Created by**: The user who approved the CLI login request
+- **Required role**: Admin or Owner role is required to approve CLI login
+
+### Device Code Security
+
+- Device codes are hashed (SHA-256) before storage
+- Device codes expire after 10 minutes by default
+- Each device code can only be consumed once
+- Codes are 48 characters (24 bytes in hex)
+
+## Troubleshooting
+
+### Login request expired
+
+If you see this error:
+
+```
+Error: Login request expired. Run `relio login` again.
+```
+
+The device code expired before you approved it. Start the login process again with a longer expiration:
+
+```bash
+relio login --expires-in 900
+```
+
+### No active profile
+
+If you see this error:
+
+```
+Error: No active profile. Run `relio login` first.
+```
+
+You need to authenticate first:
+
+```bash
+relio login
+```
+
+### Profile not found
+
+If you see this error:
+
+```
+Error: Profile "staging" not found.
+```
+
+List your profiles to see what's available:
+
+```bash
+relio profiles list
+```
+
+### Database migration error
+
+If you see this error during login:
+
+```
+Error: Unable to start CLI login. Run database migrations (`pnpm db:migrate`) and retry.
+```
+
+The CLI authentication tables are not set up on the server. Contact your Relio instance administrator.
+
+### Browser doesn't open automatically
+
+If the browser fails to open:
+
+1. Copy the verification URL from the terminal
+2. Manually open it in your browser
+3. Or use `--no-open` flag and always open manually:
+   ```bash
+   relio login --no-open
+   ```
+
+## CI/CD Integration
+
+For automated environments, you can use the CLI with pre-configured credentials:
+
+### Using Environment Variables
+
+```bash
+export RELIO_SERVER_URL="https://app.relio.com"
+relio login --profile ci --token-name "CI/CD Token"
+```
+
+### Mounting Configuration
+
+Mount the config file in CI/CD:
+
+```yaml
+# .github/workflows/example.yml
+env:
+  RELIO_CONFIG: ${{ secrets.RELIO_CONFIG }}
+
+steps:
+  - name: Setup Relio credentials
+    run: |
+      mkdir -p ~/.config/relio
+      echo "$RELIO_CONFIG" > ~/.config/relio/config.json
+  
+  - name: Test API connection
+    run: relio auth test
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Overview" icon="terminal" href="/cli/overview">
+    Learn more about CLI capabilities
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/introduction">
+    Explore the Relio API endpoints
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/integrations/webhooks">
+    Set up webhooks for real-time notifications
+  </Card>
+</CardGroup>
